@@ -1,0 +1,60 @@
+{
+  "health_score": 42,
+  "verdict": "BLOCK_DEPLOYMENT",
+  "defects": [
+    {
+      "element_name": "btn_purchase",
+      "bbox": [420.0, 150.0, 480.0, 310.0],
+      "defect_type": "LAYOUT_OVERFLOW",
+      "severity": "CRITICAL"
+    }
+  ],
+  "root_causes": [
+    {
+      "target_file": "component.py",
+      "target_line": 18,
+      "offending_token": "width: 120px",
+      "explanation": "Fixed width constraint 'width: 120px' forces text overflow when action label exceeds fixed pixel boundary."
+    }
+  ],
+  "patches": [
+    {
+      "target_file": "component.py",
+      "target_line": 18,
+      "original_snippet": "width: 120px;",
+      "replacement_snippet": "width: 100%;"
+    }
+  ],
+  "chaos_suite": [
+    {
+      "test_id": "CHAOS-001",
+      "input_payload": "repeated_text_len_4096",
+      "stress_vector": "BUFFER_OVERFLOW_SIMULATION",
+      "expected_behavior": "Graceful text truncation with ellipsis without container blowout"
+    },
+    {
+      "test_id": "CHAOS-002",
+      "input_payload": "viewport_width=320",
+      "stress_vector": "VIEWPORT_MINIMUM_WIDTH",
+      "expected_behavior": "Button wraps cleanly or transitions to full-width mobile action"
+    },
+    {
+      "test_id": "CHAOS-003",
+      "input_payload": "network_latency_ms=4500",
+      "stress_vector": "HIGH_LATENCY_JITTER",
+      "expected_behavior": "Button displays loading spinner and disables concurrent click events"
+    },
+    {
+      "test_id": "CHAOS-004",
+      "input_payload": "rapid_clicks=20_in_100ms",
+      "stress_vector": "DEBOUNCE_STRESS",
+      "expected_behavior": "Single mutation dispatched, idempotency token respected"
+    },
+    {
+      "test_id": "CHAOS-005",
+      "input_payload": "rtl_locale=ar_SA",
+      "stress_vector": "LOCALIZATION_RTL_FLIP",
+      "expected_behavior": "Layout mirrors right-to-left without overlapping neighboring badges"
+    }
+  ]
+}

@@ -1,45 +1,29 @@
-# Python Virtual Environment
-.venv/
-venv/
-ENV/
-env/
-
-# Environment Variables
-.env
-.env.*
-!.env.example
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
 *.pyc
 
-# Distribution / packaging
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
+# Environment Variables
+.env
+.env.*
+!.env.example
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
 
 # Testing & Coverage
 .pytest_cache/
 .coverage
 htmlcov/
 
-# Editor & OS files
-.vscode/
-.idea/
-*.swp
-Thumbs.db
-Desktop.ini
+# SARIF reports
+*.sarif
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
