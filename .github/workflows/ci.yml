@@ -39,7 +39,7 @@ jobs:
 
       - name: Run QA-Swarm in headless mode via CLI
         run: |
-          python -m core.cli --ui test_samples/sample_ui.png --code test_samples/broken_component.py --sarif test_samples/qa_audit.sarif --mock
+          python -m core.cli --ui test_samples/sample_ui.png --code test_samples/broken_component.py --sarif test_samples/qa_audit.sarif --mock --allow-blocked
         continue-on-error: true
 
       - name: Upload SARIF report to GitHub Code Scanning
