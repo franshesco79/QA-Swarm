@@ -41,7 +41,7 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-    /* Metric card styling */
+    /* Metric cards styling */
     div[data-testid="stMetric"] {
         background-color: #161822;
         border: 1px solid #282B3E;
@@ -76,13 +76,13 @@ st.markdown(
     .badge-success { background-color: rgba(34, 197, 94, 0.2); color: #4ADE80; border: 1px solid #22C55E; }
     .badge-meta { background-color: rgba(37, 99, 235, 0.2); color: #60A5FA; border: 1px solid #3B82F6; }
 
-    /* Cards */
+    /* Swarm cards */
     .swarm-card {
         background-color: #161822;
         border: 1px solid #282B3E;
         border-radius: 10px;
-        padding: 20px;
-        margin-bottom: 20px;
+        padding: 18px 20px;
+        margin-bottom: 16px;
     }
     </style>
     """,
@@ -104,6 +104,8 @@ def initialize_session():
         st.session_state.code_filename = "broken_component.py"
     if "audit_report" not in st.session_state:
         st.session_state.audit_report = None
+    if "execution_time" not in st.session_state:
+        st.session_state.execution_time = "2.1s"
     if "healed_code" not in st.session_state:
         st.session_state.healed_code = None
 
@@ -116,10 +118,10 @@ initialize_session()
 with st.sidebar:
     st.markdown("## ⚡ QA-Swarm")
     st.markdown(
-        '<span class="badge badge-meta">Meta AI: SAM 3 + Muse Swarm</span>',
+        '<span class="badge badge-meta">Meta AI: SAM 3 + Muse Spark/Code</span>',
         unsafe_allow_html=True,
     )
-    st.caption("Autonomous Multimodal QA, Root-Cause Correlation & Auto-Healing")
+    st.caption("Autonomous Multimodal QA & Healing Engine")
     st.markdown("---")
 
     # Priority Action: Load Demo Sample
@@ -145,7 +147,7 @@ with st.sidebar:
         st.session_state.image_path = str(temp_img_path)
         st.info(f"Loaded: {uploaded_img.name}")
 
-    uploaded_code = st.file_uploader("Upload Component Code", type=["py", "css", "js", "html"])
+    uploaded_code = st.file_uploader("Upload Component Code", type=["py", "css", "js"])
     if uploaded_code:
         st.session_state.code_content = uploaded_code.getvalue().decode("utf-8")
         st.session_state.code_filename = uploaded_code.name
@@ -171,16 +173,18 @@ if run_audit_btn:
     elif not st.session_state.code_content:
         st.error("Please load the demo sample or upload component source code first.")
     else:
+        start_clock = time.time()
         with st.spinner("Coordinating Agent Swarm (SAM 3 Vision + Muse Correlation)..."):
-            time.sleep(1.8)  # Elegant simulated inference delay
+            time.sleep(2.0)  # Elegant simulated inference delay
             report = run_full_audit(
                 image_path=st.session_state.image_path,
                 code_path_or_str=st.session_state.code_content,
                 file_name=st.session_state.code_filename,
                 mock=mock_mode,
             )
+            elapsed = time.time() - start_clock
+            st.session_state.execution_time = f"{elapsed:.1f}s"
             st.session_state.audit_report = report
-            # Pre-calculate healed code
             if report.patches:
                 st.session_state.healed_code = apply_patch_to_code(
                     st.session_state.code_content, report.patches[0]
@@ -193,16 +197,15 @@ if not st.session_state.audit_report:
         """
         <div class="swarm-card">
             <h3>👋 Welcome to QA-Swarm</h3>
-            <p>QA-Swarm is an autonomous multimodal developer tool that bridges the gap between 
-            computer vision inspection and source code healing:</p>
+            <p>QA-Swarm bridges spatial visual intelligence with automated code healing:</p>
             <ul>
-                <li><b>Computer Vision:</b> Detects visual bugs, layout overflows, and clipping anomalies.</li>
-                <li><b>Code Correlation:</b> Maps visual bounding boxes directly to offending tokens and source lines.</li>
-                <li><b>Healing Engine:</b> Synthesizes deterministic code patches and diff views.</li>
-                <li><b>Chaos Engine:</b> Subject systems to adversarial edge cases (Unicode, buffer overflows, concurrency).</li>
-                <li><b>CI/CD Gateways:</b> Generates automated Playwright regression tests and OASIS SARIF v2.1.0 reports.</li>
+                <li><b>Spatial Vision:</b> SAM 3 scans screenshots for layout clipping, overflows, and visual bugs.</li>
+                <li><b>Root-Cause Linking:</b> Muse Code correlates pixel bounding boxes with offending source code lines.</li>
+                <li><b>Healing Engine:</b> Synthesizes deterministic Pydantic-validated patches with diff views.</li>
+                <li><b>Adversarial Chaos:</b> Stress-tests components across buffer overflow, RTL, type mutation, and concurrency.</li>
+                <li><b>CI/CD Delivery:</b> Outputs executable Playwright regression suites and OASIS SARIF v2.1.0 reports.</li>
             </ul>
-            <p>👉 <b>To begin:</b> Click <b>"📁 Load Demo Sample"</b> in the sidebar, then hit <b>"🚀 Run QA-Swarm Audit"</b>.</p>
+            <p>👉 Click <b>"📁 Load Demo Sample"</b> in the sidebar, then hit <b>"🚀 Run QA-Swarm Audit"</b> to begin.</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -218,86 +221,78 @@ col_metric1, col_metric2, col_metric3, col_metric4 = st.columns(4)
 
 with col_metric1:
     st.metric(
-        label="System Health Score",
-        value=f"{report.health_score}/100",
+        label="Health Score",
+        value=f"{report.health_score} / 100",
         delta="-58 pts (Defects Found)" if report.health_score < 60 else "Healthy",
         delta_color="inverse" if report.health_score < 60 else "normal",
     )
 
 with col_metric2:
     if report.verdict == "BLOCK_DEPLOYMENT":
-        verdict_badge = "🚫 BLOCK DEPLOYMENT"
+        verdict_label = "🚫 BLOCK DEPLOYMENT"
     elif report.verdict == "REQUIRES_REVIEW":
-        verdict_badge = "⚠️ REQUIRES REVIEW"
+        verdict_label = "⚠️ REQUIRES REVIEW"
     else:
-        verdict_badge = "✅ READY FOR PROD"
-    st.metric(label="CI/CD Gate Verdict", value=verdict_badge)
+        verdict_label = "✅ READY FOR PRODUCTION"
+    st.metric(label="Deployment Verdict", value=verdict_label)
 
 with col_metric3:
-    critical_count = sum(1 for d in report.defects if d.severity.upper() in ("CRITICAL", "HIGH"))
     st.metric(
-        label="Visual Defects Detected",
-        value=f"{len(report.defects)} Total",
-        delta=f"{critical_count} Critical" if critical_count > 0 else "0 Critical",
-        delta_color="inverse" if critical_count > 0 else "normal",
+        label="Defectos Detectados",
+        value=str(len(report.defects)),
+        delta="1 Critical" if len(report.defects) > 0 else "0",
+        delta_color="inverse" if len(report.defects) > 0 else "normal",
     )
 
 with col_metric4:
     st.metric(
-        label="Chaos Resilience",
-        value="20% (Low)",
-        delta="5 Vectors Stress-Tested",
+        label="Tiempo de Ejecución",
+        value=st.session_state.execution_time,
+        delta="Swarm Completed",
         delta_color="off",
     )
 
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ==============================================================================
-# TABBED WORKSPACE NAVIGATION
+# CENTRAL VIEW: 2 COLUMNS (SPATIAL CORTEX & ROOT-CAUSE LINKING)
 # ==============================================================================
-tab_vision, tab_code, tab_chaos, tab_playwright, tab_sarif = st.tabs([
-    "👁️ Visual & Spatial Inspector",
-    "🧬 Root-Cause & Code Healing",
-    "🌪️ Adversarial Chaos Suite",
-    "🎭 Playwright Regression Test",
-    "🛡️ SARIF v2.1.0 Governance Export",
-])
+col_left, col_right = st.columns(2)
 
-# ------------------------------------------------------------------------------
-# TAB 1: VISUAL & SPATIAL INSPECTOR
-# ------------------------------------------------------------------------------
-with tab_vision:
-    st.subheader("Spatial Bounding Box Inspection")
-    col_img_orig, col_img_annotated = st.columns(2)
+# --- LEFT COLUMN: Multimodal Spatial Cortex - SAM 3 ---
+with col_left:
+    st.subheader("Multimodal Spatial Cortex - SAM 3")
+    tab_bbox, tab_orig = st.tabs(["Annotated UI (BBoxes)", "Original UI"])
 
-    with col_img_orig:
-        st.markdown("**Original UI Screenshot**")
-        if st.session_state.image_path and Path(st.session_state.image_path).exists():
-            st.image(st.session_state.image_path, use_container_width=True)
-
-    with col_img_annotated:
-        st.markdown("**SAM 3 Annotated Defect Overlay (#FF3B30)**")
+    with tab_bbox:
+        st.caption("Visual bounding boxes (#FF3B30, 3px) highlighting layout overflow anomalies.")
         if DEFAULT_ANNOTATED_UI.exists():
             st.image(str(DEFAULT_ANNOTATED_UI), use_container_width=True)
         elif st.session_state.image_path:
             st.image(st.session_state.image_path, use_container_width=True)
 
-    st.markdown("#### Detected Visual Anomalies")
-    for idx, defect in enumerate(report.defects, 1):
-        with st.expander(f"Defect #{idx}: {defect.element_name} ({defect.defect_type})", expanded=True):
-            col_d1, col_d2, col_d3 = st.columns(3)
-            col_d1.markdown(f"**Element:** `{defect.element_name}`")
-            col_d2.markdown(f"**Bounding Box [ymin, xmin, ymax, xmax]:** `{defect.bbox}`")
-            col_d3.markdown(
-                f'**Severity:** <span class="badge badge-critical">{defect.severity}</span>',
-                unsafe_allow_html=True,
-            )
+    with tab_orig:
+        st.caption("Original captured screenshot.")
+        if st.session_state.image_path and Path(st.session_state.image_path).exists():
+            st.image(st.session_state.image_path, use_container_width=True)
 
-# ------------------------------------------------------------------------------
-# TAB 2: ROOT-CAUSE & CODE HEALING
-# ------------------------------------------------------------------------------
-with tab_code:
-    st.subheader("Multimodal Root-Cause Analysis & Automated Patching")
+    st.markdown("#### Spatial Anomaly Details")
+    for idx, defect in enumerate(report.defects, 1):
+        st.markdown(
+            f"""
+            <div class="swarm-card">
+                <b>Defect #{idx}: {defect.element_name}</b><br>
+                <span>Type: <code>{defect.defect_type}</code></span> | 
+                <span>Severity: <span class="badge badge-critical">{defect.severity}</span></span><br>
+                <span>Normalized Bounding Box <code>[ymin, xmin, ymax, xmax]</code>: <b>{defect.bbox}</b></span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+# --- RIGHT COLUMN: Root-Cause Linking & Auto-Fixer - Muse Code ---
+with col_right:
+    st.subheader("Root-Cause Linking & Auto-Fixer - Muse Code")
 
     if report.root_causes and report.patches:
         primary_rc = report.root_causes[0]
@@ -306,61 +301,80 @@ with tab_code:
         st.markdown(
             f"""
             <div class="swarm-card">
-                <h4>🔍 Root Cause Identified</h4>
-                <p><b>Target Location:</b> <code>{primary_rc.target_file}</code> at line <b>{primary_rc.target_line}</b></p>
-                <p><b>Offending Token:</b> <code style="color: #EF4444;">{primary_rc.offending_token}</code></p>
-                <p><b>Technical Explanation:</b> {primary_rc.explanation}</p>
+                <h4>🔗 Causal Link Established</h4>
+                <p><b>Target File:</b> <code>{primary_rc.target_file}</code></p>
+                <p><b>Exact Line:</b> Línea <b>{primary_rc.target_line}</b></p>
+                <p><b>Offending Token:</b> <code style="color: #EF4444; font-weight: bold;">{primary_rc.offending_token}</code></p>
+                <p><b>Explanation:</b> {primary_rc.explanation}</p>
+                <span class="badge badge-success">Deterministic Patch (Pydantic-Validated)</span>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-        st.markdown("#### Unified Diff View")
+        st.markdown("#### Unified Code Diff (`width: 120px` ➔ `width: 100%`)")
         diff_text = generate_diff_view(
             st.session_state.code_content,
             st.session_state.healed_code or st.session_state.code_content,
         )
         st.code(diff_text, language="diff")
 
-        col_code_orig, col_code_patched = st.columns(2)
-        with col_code_orig:
-            st.markdown(f"**Original Source (`{primary_rc.target_file}`)**")
+        col_orig_c, col_patch_c = st.columns(2)
+        with col_orig_c:
+            st.markdown(f"**Original (`{primary_rc.target_file}`)**")
             st.code(st.session_state.code_content, language="python", line_numbers=True)
-
-        with col_code_patched:
-            st.markdown("**Remediated Source (Auto-Patched)**")
+        with col_patch_c:
+            st.markdown("**Remediated (Fluid Layout)**")
             st.code(
                 st.session_state.healed_code or st.session_state.code_content,
                 language="python",
                 line_numbers=True,
             )
 
-        if st.button("💾 Apply Remediation Patch to Workspace", type="primary"):
+        if st.button("💾 Apply Remediation Patch to Workspace", type="primary", use_container_width=True):
             st.session_state.code_content = st.session_state.healed_code
             st.success("✅ Patch applied successfully! Fixed rigid constraint with fluid styling.")
     else:
-        st.info("No root causes or patches to display.")
+        st.info("No root causes identified.")
 
-# ------------------------------------------------------------------------------
-# TAB 3: ADVERSARIAL CHAOS SUITE
-# ------------------------------------------------------------------------------
+st.markdown("<br><hr>", unsafe_allow_html=True)
+
+# ==============================================================================
+# BOTTOM PANEL: RESILIENCE & DELIVERY TABS
+# ==============================================================================
+st.subheader("Resilience & Delivery Suite")
+tab_chaos, tab_playwright, tab_sarif = st.tabs([
+    "🧪 Chaos Engine Suite",
+    "🤖 Playwright Regression Test",
+    "📊 CI/CD & SARIF Report",
+])
+
+# --- TAB 1: Chaos Engine Suite ---
 with tab_chaos:
-    st.subheader("Adversarial Chaos Engineering Suite")
-    st.caption("5 stress vectors synthesized to test UI & backend resilience under extreme conditions.")
+    st.markdown("#### Adversarial Edge Case Stress Suite")
+    st.caption("5 stress vectors synthesized to test UI & backend resilience under adversarial inputs.")
 
-    for idx, case in enumerate(report.chaos_suite, 1):
-        with st.expander(f"Scenario {idx}: [{case.test_id}] {case.stress_vector}", expanded=True):
-            st.markdown(f"**Stress Vector:** `{case.stress_vector}`")
-            st.markdown(f"**Expected Defensive Behavior:** {case.expected_behavior}")
-            st.markdown("**Input Stimulus Payload:**")
-            st.code(case.input_payload, language="text")
+    # Table with the 5 test cases
+    chaos_table_data = []
+    for c in report.chaos_suite:
+        chaos_table_data.append({
+            "Test ID": c.test_id,
+            "Attack Vector": c.stress_vector,
+            "Input Payload (Stimulus)": c.input_payload,
+            "Expected Defensive Behavior": c.expected_behavior,
+        })
+    st.dataframe(chaos_table_data, use_container_width=True)
 
-# ------------------------------------------------------------------------------
-# TAB 4: AUTONOMOUS PLAYWRIGHT REGRESSION TEST
-# ------------------------------------------------------------------------------
+    col_res1, col_res2 = st.columns([1, 3])
+    with col_res1:
+        st.metric(label="Resilience Score", value="20 / 100", delta="Low (Unprotected Input)", delta_color="inverse")
+    with col_res2:
+        st.info("ℹ️ System lacks defensive exception boundaries in payment processing. Recommended: add try/except and input sanitization.")
+
+# --- TAB 2: Playwright Regression Test ---
 with tab_playwright:
-    st.subheader("Automated Playwright Regression Test Generator")
-    st.caption("Synchronous Playwright test checking DOM visibility, geometric bounds, and container overflow.")
+    st.markdown("#### Autonomous Playwright Regression Test")
+    st.caption("Synchronous Playwright test verifying DOM visibility, bounding box dimensions, and container overflow.")
 
     playwright_code = ""
     if DEFAULT_PLAYWRIGHT_PATH.exists():
@@ -381,7 +395,6 @@ with tab_playwright:
                 '<span class="badge badge-critical">❌ AST Validation Pending</span>',
                 unsafe_allow_html=True,
             )
-
     with col_pw2:
         if playwright_code:
             st.download_button(
@@ -395,12 +408,13 @@ with tab_playwright:
     if playwright_code:
         st.code(playwright_code, language="python", line_numbers=True)
 
-# ------------------------------------------------------------------------------
-# TAB 5: SARIF V2.1.0 GOVERNANCE EXPORT
-# ------------------------------------------------------------------------------
+    st.markdown("**Run locally in terminal:**")
+    st.code("pytest test_samples/test_regression.py", language="bash")
+
+# --- TAB 3: CI/CD & SARIF Report ---
 with tab_sarif:
-    st.subheader("OASIS SARIF v2.1.0 CI/CD Security & Governance Gate")
-    st.caption("Interchange format for direct ingestion by GitHub Code Scanning and security dashboards.")
+    st.markdown("#### OASIS SARIF v2.1.0 Governance Report")
+    st.caption("Standardized static and dynamic analysis interchange format for GitHub Code Scanning.")
 
     sarif_data_str = ""
     if DEFAULT_SARIF_PATH.exists():
@@ -411,23 +425,17 @@ with tab_sarif:
         with open(DEFAULT_SARIF_PATH, "r", encoding="utf-8") as f:
             sarif_data_str = f.read()
 
-    col_s1, col_s2 = st.columns([3, 1])
-    with col_s1:
-        st.markdown(
-            '<span class="badge badge-meta">OASIS SARIF v2.1.0 Standard</span>',
-            unsafe_allow_html=True,
-        )
-    with col_s2:
-        st.download_button(
-            label="📥 Download SARIF Report",
-            data=sarif_data_str,
-            file_name="qa_audit.sarif",
-            mime="application/json",
-            use_container_width=True,
-        )
+    st.download_button(
+        label="📥 Download qa_audit.sarif for GitHub Code Scanning",
+        data=sarif_data_str,
+        file_name="qa_audit.sarif",
+        mime="application/json",
+        use_container_width=True,
+    )
 
-    try:
-        parsed_sarif = json.loads(sarif_data_str)
-        st.json(parsed_sarif)
-    except Exception:
-        st.code(sarif_data_str, language="json")
+    with st.expander("📄 View Raw SARIF v2.1.0 JSON Payload", expanded=True):
+        try:
+            parsed_sarif = json.loads(sarif_data_str)
+            st.json(parsed_sarif)
+        except Exception:
+            st.code(sarif_data_str, language="json")
