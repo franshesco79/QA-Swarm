@@ -41,12 +41,24 @@ st.set_page_config(
 st.markdown(
     """
     <style>
+    /* Clean layout & hide Streamlit default chrome */
+    header[data-testid="stHeader"] {
+        display: none !important;
+    }
+    footer {
+        display: none !important;
+    }
+    .block-container {
+        padding-top: 1.5rem;
+        max-width: 1200px;
+    }
+
     /* Metric cards styling */
     div[data-testid="stMetric"] {
-        background-color: #161822;
-        border: 1px solid #282B3E;
-        padding: 14px 18px;
-        border-radius: 10px;
+        background-color: #111827;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 16px 20px;
+        border-radius: 12px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
     }
     div[data-testid="stMetricLabel"] {
@@ -57,15 +69,20 @@ st.markdown(
         letter-spacing: 0.5px;
     }
     div[data-testid="stMetricValue"] {
-        font-size: 1.6rem;
+        font-size: 1.55rem;
         font-weight: 700;
+        color: #F3F4F6;
+    }
+    div[data-testid="stMetricDelta"] {
+        font-size: 0.82rem;
+        font-weight: 600;
     }
 
-    /* Badges */
+    /* Badges & Pills */
     .badge {
         display: inline-block;
-        padding: 4px 10px;
-        border-radius: 6px;
+        padding: 4px 12px;
+        border-radius: 9999px;
         font-size: 0.78rem;
         font-weight: 700;
         letter-spacing: 0.5px;
@@ -75,14 +92,33 @@ st.markdown(
     .badge-warning { background-color: rgba(245, 158, 11, 0.2); color: #FBBF24; border: 1px solid #F59E0B; }
     .badge-success { background-color: rgba(34, 197, 94, 0.2); color: #4ADE80; border: 1px solid #22C55E; }
     .badge-meta { background-color: rgba(37, 99, 235, 0.2); color: #60A5FA; border: 1px solid #3B82F6; }
+    .badge-pill { border-radius: 9999px !important; }
 
-    /* Swarm cards */
+    /* Welcome & Swarm cards */
     .swarm-card {
-        background-color: #161822;
-        border: 1px solid #282B3E;
-        border-radius: 10px;
-        padding: 18px 20px;
+        background-color: #111827;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 22px 24px;
         margin-bottom: 16px;
+        color: #E5E7EB;
+    }
+    .swarm-card h3, .swarm-card h4 {
+        color: #F9FAFB;
+        margin-top: 0;
+    }
+    .swarm-card p, .swarm-card li, .swarm-card span {
+        color: #E5E7EB;
+        line-height: 1.6;
+    }
+    .swarm-card b, .swarm-card strong {
+        color: #FFFFFF;
+    }
+    .swarm-card code {
+        background-color: rgba(255, 255, 255, 0.06);
+        color: #93C5FD;
+        padding: 2px 6px;
+        border-radius: 4px;
     }
     </style>
     """,
@@ -195,17 +231,17 @@ if run_audit_btn:
 if not st.session_state.audit_report:
     st.markdown(
         """
-        <div class="swarm-card">
-            <h3>👋 Welcome to QA-Swarm</h3>
-            <p>QA-Swarm bridges spatial visual intelligence with automated code healing:</p>
-            <ul>
-                <li><b>Spatial Vision:</b> SAM 3 scans screenshots for layout clipping, overflows, and visual bugs.</li>
-                <li><b>Root-Cause Linking:</b> Muse Code correlates pixel bounding boxes with offending source code lines.</li>
-                <li><b>Healing Engine:</b> Synthesizes deterministic Pydantic-validated patches with diff views.</li>
-                <li><b>Adversarial Chaos:</b> Stress-tests components across buffer overflow, RTL, type mutation, and concurrency.</li>
-                <li><b>CI/CD Delivery:</b> Outputs executable Playwright regression suites and OASIS SARIF v2.1.0 reports.</li>
+        <div class="swarm-card" style="background-color: #111827; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 24px; color: #E5E7EB;">
+            <h3 style="color: #F9FAFB; margin-top: 0;">👋 Welcome to QA-Swarm</h3>
+            <p style="color: #E5E7EB; line-height: 1.6;">QA-Swarm bridges spatial visual intelligence with automated code healing:</p>
+            <ul style="color: #E5E7EB; line-height: 1.8;">
+                <li><b style="color: #FFFFFF;">Spatial Vision:</b> SAM 3 scans screenshots for layout clipping, overflows, and visual bugs.</li>
+                <li><b style="color: #FFFFFF;">Root-Cause Linking:</b> Muse Code correlates pixel bounding boxes with offending source code lines.</li>
+                <li><b style="color: #FFFFFF;">Healing Engine:</b> Synthesizes deterministic Pydantic-validated patches with diff views.</li>
+                <li><b style="color: #FFFFFF;">Adversarial Chaos:</b> Stress-tests components across buffer overflow, RTL, type mutation, and concurrency.</li>
+                <li><b style="color: #FFFFFF;">CI/CD Delivery:</b> Outputs executable Playwright regression suites and OASIS SARIF v2.1.0 reports.</li>
             </ul>
-            <p>👉 Click <b>"📁 Load Demo Sample"</b> in the sidebar, then hit <b>"🚀 Run QA-Swarm Audit"</b> to begin.</p>
+            <p style="color: #E5E7EB; margin-bottom: 0;">👉 Click <b>"📁 Load Demo Sample"</b> in the sidebar, then hit <b>"🚀 Run QA-Swarm Audit"</b> to begin.</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -226,15 +262,25 @@ with col_metric1:
         delta="-58 pts (Defects Found)" if report.health_score < 60 else "Healthy",
         delta_color="inverse" if report.health_score < 60 else "normal",
     )
+    badge_html = (
+        '<div style="margin-top: 6px;"><span class="badge badge-critical badge-pill">Critical Risk</span></div>'
+        if report.health_score < 60
+        else '<div style="margin-top: 6px;"><span class="badge badge-success badge-pill">Gate Passed</span></div>'
+    )
+    st.markdown(badge_html, unsafe_allow_html=True)
 
 with col_metric2:
     if report.verdict == "BLOCK_DEPLOYMENT":
         verdict_label = "🚫 BLOCK DEPLOYMENT"
+        verdict_badge = '<div style="margin-top: 6px;"><span class="badge badge-critical badge-pill">Gate Blocked</span></div>'
     elif report.verdict == "REQUIRES_REVIEW":
         verdict_label = "⚠️ REQUIRES REVIEW"
+        verdict_badge = '<div style="margin-top: 6px;"><span class="badge badge-warning badge-pill">Review Required</span></div>'
     else:
         verdict_label = "✅ READY FOR PRODUCTION"
+        verdict_badge = '<div style="margin-top: 6px;"><span class="badge badge-success badge-pill">Production Ready</span></div>'
     st.metric(label="Deployment Verdict", value=verdict_label)
+    st.markdown(verdict_badge, unsafe_allow_html=True)
 
 with col_metric3:
     st.metric(
@@ -243,6 +289,7 @@ with col_metric3:
         delta="1 Critical" if len(report.defects) > 0 else "0",
         delta_color="inverse" if len(report.defects) > 0 else "normal",
     )
+    st.markdown('<div style="margin-top: 6px;"><span class="badge badge-critical badge-pill">Spatial BBox</span></div>', unsafe_allow_html=True)
 
 with col_metric4:
     st.metric(
@@ -251,6 +298,7 @@ with col_metric4:
         delta="Swarm Completed",
         delta_color="off",
     )
+    st.markdown('<div style="margin-top: 6px;"><span class="badge badge-meta badge-pill">SAM 3 + Muse</span></div>', unsafe_allow_html=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 

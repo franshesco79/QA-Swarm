@@ -1,3 +1,14 @@
+---
+title: QA-Swarm
+emoji: ⚡
+colorFrom: blue
+colorTo: indigo
+sdk: streamlit
+app_file: app/main.py
+pinned: false
+license: mit
+---
+
 # ⚡ QA-Swarm: Autonomous Multimodal QA & Healing Engine
 
 [![Python 3.12](https://img.shields.io/badge/Python-3.12+-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
