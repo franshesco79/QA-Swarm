@@ -6,9 +6,8 @@ adversarial chaos evaluation, health scoring, and CI/CD reporting.
 
 import json
 import logging
-import os
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import List, Tuple
 
 from core.schemas import CodePatch, QAAuditReport, RootCauseLink, VisualDefect
 from core.vision import draw_bounding_boxes, inspect_ui_elements

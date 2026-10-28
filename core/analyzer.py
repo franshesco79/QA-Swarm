@@ -8,7 +8,7 @@ import difflib
 import json
 import os
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 from core.schemas import CodePatch, RootCauseLink
 

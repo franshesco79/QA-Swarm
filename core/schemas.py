@@ -4,7 +4,7 @@ Defines core data structures for visual defects, root-cause analysis,
 code patches, chaos test cases, and aggregate audit reports.
 """
 
-from typing import List
+from typing import List, TypeAlias
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
@@ -90,3 +90,16 @@ class QAAuditReport(BaseModel):
     root_causes: List[RootCauseLink] = Field(default_factory=list, description="Mapped root causes")
     patches: List[CodePatch] = Field(default_factory=list, description="Remediation code patches")
     chaos_suite: List[ChaosTestCase] = Field(default_factory=list, description="Chaos resilience test suite")
+
+
+# Type alias conforming to SwarmAuditResult specification
+SwarmAuditResult: TypeAlias = QAAuditReport
+
+__all__ = [
+    "VisualDefect",
+    "RootCauseLink",
+    "CodePatch",
+    "ChaosTestCase",
+    "QAAuditReport",
+    "SwarmAuditResult",
+]

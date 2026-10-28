@@ -5,11 +5,11 @@ health scoring, and SARIF export.
 """
 
 import argparse
-import os
 import sys
-from pathlib import Path
+from typing import List, Optional
 
 from core.orchestrator import export_to_sarif, run_full_audit
+from core.schemas import QAAuditReport
 
 
 # ANSI Colors for CI/CD terminal formatting
@@ -23,7 +23,8 @@ class ANSI:
     CYAN = "\033[96m"
 
 
-def format_summary(report, sarif_path: str) -> str:
+def format_summary(report: QAAuditReport, sarif_path: str) -> str:
+    """Formats the audit report and SARIF file path into an ANSI-styled summary for terminal CI/CD."""
     lines = []
     lines.append(f"{ANSI.BOLD}{ANSI.CYAN}{'=' * 72}{ANSI.RESET}")
     lines.append(f"{ANSI.BOLD}{ANSI.CYAN}       QA-SWARM AUTOMATED MULTIMODAL AUDIT REPORT{ANSI.RESET}")
@@ -75,7 +76,8 @@ def format_summary(report, sarif_path: str) -> str:
     return "\n".join(lines)
 
 
-def parse_args(argv=None):
+def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
+    """Parses command-line arguments for QA-Swarm CLI."""
     parser = argparse.ArgumentParser(
         description="QA-Swarm CLI: Autonomous Multimodal QA & CI/CD Gate Engine"
     )
@@ -120,7 +122,8 @@ def parse_args(argv=None):
     return parser.parse_args(argv)
 
 
-def main(argv=None):
+def main(argv: Optional[List[str]] = None) -> None:
+    """Executes the QA-Swarm CLI runner and enforces CI/CD deployment exit gates."""
     args = parse_args(argv)
 
     # Run complete audit pipeline

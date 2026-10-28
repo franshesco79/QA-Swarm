@@ -40,3 +40,5 @@ def test_app_main_contains_key_components():
     assert "st.tabs" in code
     assert "st.metric" in code
     assert "export_to_sarif" in code
+    assert "st.cache_data" in code
+    assert "audit_result" in code

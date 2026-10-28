@@ -3,6 +3,7 @@ QA-Swarm: Autonomous Multimodal QA & Healing Engine.
 Streamlit Interactive Developer Dashboard.
 """
 
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -10,7 +11,6 @@ import sys
 import time
 from typing import Optional
 
-from PIL import Image
 import streamlit as st
 
 # Ensure project root is in sys.path
@@ -21,7 +21,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from core.analyzer import apply_patch_to_code, generate_diff_view
 from core.browser import capture_url_screenshot
 from core.orchestrator import export_to_sarif, run_full_audit
-from core.schemas import QAAuditReport
+from core.schemas import QAAuditReport, SwarmAuditResult
 from core.test_generator import validate_test_syntax
 
 DEFAULT_SAMPLE_UI = PROJECT_ROOT / "test_samples" / "sample_ui.png"
@@ -255,7 +255,7 @@ st.markdown(
 )
 
 
-def initialize_session():
+def initialize_session() -> None:
     """Initializes session state defaults with pre-loaded demo artifacts."""
     if "image_path" not in st.session_state or not st.session_state.image_path:
         st.session_state.image_path = str(DEFAULT_SAMPLE_UI) if DEFAULT_SAMPLE_UI.exists() else None
@@ -269,10 +269,38 @@ def initialize_session():
         st.session_state.code_filename = "broken_component.py"
     if "audit_report" not in st.session_state:
         st.session_state.audit_report = None
+    if "audit_result" not in st.session_state:
+        st.session_state["audit_result"] = None
     if "execution_time" not in st.session_state:
         st.session_state.execution_time = "2.1s"
     if "healed_code" not in st.session_state:
         st.session_state.healed_code = None
+    if "sarif_data" not in st.session_state:
+        st.session_state.sarif_data = None
+
+
+def compute_payload_hash(data: bytes | str) -> str:
+    """Computes a SHA-256 hash string for caching inputs."""
+    payload = data.encode("utf-8") if isinstance(data, str) else data
+    return hashlib.sha256(payload).hexdigest()
+
+
+@st.cache_data(show_spinner=False)
+def execute_cached_swarm_audit(
+    image_hash: str,
+    code_hash: str,
+    image_path: str,
+    code_content: str,
+    code_filename: str,
+    use_mock: bool,
+) -> QAAuditReport:
+    """Executes or retrieves cached multimodal swarm audit based on payload hashes and settings."""
+    return run_full_audit(
+        image_path=image_path,
+        code_path_or_str=code_content,
+        file_name=code_filename,
+        mock=use_mock,
+    )
 
 
 initialize_session()
@@ -372,7 +400,7 @@ st.title("QA-Swarm: Autonomous Multimodal QA & Healing Engine")
 
 
 def trigger_audit(mock: bool) -> bool:
-    """Executes the full multimodal swarm audit and updates state."""
+    """Executes the full multimodal swarm audit and updates state with 0ms intelligent caching."""
     if not st.session_state.image_path or not Path(st.session_state.image_path).exists():
         st.error("Please load the demo sample or upload a valid UI screenshot first.")
         return False
@@ -380,22 +408,31 @@ def trigger_audit(mock: bool) -> bool:
         st.error("Please load the demo sample or upload component source code first.")
         return False
 
-    start_clock = time.time()
+    start_clock = time.perf_counter()
     with st.spinner("Coordinating Agent Swarm (SAM 3.1 Vision + Muse Spark Correlation)..."):
-        time.sleep(1.5)  # Simulated inference delay
-        report = run_full_audit(
-            image_path=st.session_state.image_path,
-            code_path_or_str=st.session_state.code_content,
-            file_name=st.session_state.code_filename,
-            mock=mock,
+        # Hash image and source code for zero-overhead intelligent caching
+        image_bytes = Path(st.session_state.image_path).read_bytes()
+        image_hash = compute_payload_hash(image_bytes)
+        code_hash = compute_payload_hash(st.session_state.code_content)
+
+        report = execute_cached_swarm_audit(
+            image_hash=image_hash,
+            code_hash=code_hash,
+            image_path=str(st.session_state.image_path),
+            code_content=st.session_state.code_content,
+            code_filename=st.session_state.code_filename,
+            use_mock=mock,
         )
-        elapsed = time.time() - start_clock
-        st.session_state.execution_time = f"{elapsed:.1f}s"
+        elapsed = time.perf_counter() - start_clock
+        st.session_state.execution_time = f"{elapsed:.2f}s"
         st.session_state.audit_report = report
+        st.session_state["audit_result"] = report
         if report.patches:
             st.session_state.healed_code = apply_patch_to_code(
                 st.session_state.code_content, report.patches[0]
             )
+        # Pre-export and cache SARIF string for 0ms download response
+        st.session_state.sarif_data = export_to_sarif(report, str(DEFAULT_SARIF_PATH))
         st.toast("Swarm Audit Completed!", icon="⚡")
         return True
 
@@ -493,7 +530,7 @@ if not st.session_state.audit_report:
 # ==============================================================================
 # HORIZONTAL GOVERNANCE METRICS (4 COLUMNS)
 # ==============================================================================
-report: QAAuditReport = st.session_state.audit_report
+report: QAAuditReport = st.session_state.get("audit_result") or st.session_state.audit_report
 
 col_metric1, col_metric2, col_metric3, col_metric4 = st.columns(4)
 
@@ -791,17 +828,17 @@ with tab_sarif:
     st.markdown("#### OASIS SARIF v2.1.0 Governance Report")
     st.caption("Standardized static and dynamic analysis interchange format for GitHub Code Scanning.")
 
-    sarif_data_str = ""
-    if DEFAULT_SARIF_PATH.exists():
-        with open(DEFAULT_SARIF_PATH, "r", encoding="utf-8") as f:
-            sarif_data_str = f.read()
-    else:
-        sarif_data_str = export_to_sarif(report, str(DEFAULT_SARIF_PATH))
-        with open(DEFAULT_SARIF_PATH, "r", encoding="utf-8") as f:
-            sarif_data_str = f.read()
+    sarif_data_str = st.session_state.get("sarif_data")
+    if not sarif_data_str:
+        if DEFAULT_SARIF_PATH.exists():
+            with open(DEFAULT_SARIF_PATH, "r", encoding="utf-8") as f:
+                sarif_data_str = f.read()
+        else:
+            sarif_data_str = export_to_sarif(report, str(DEFAULT_SARIF_PATH))
+        st.session_state.sarif_data = sarif_data_str
 
     st.download_button(
-        label="📥 Download qa_audit.sarif for GitHub Code Scanning",
+        label="📥 Download SARIF Report (qa_audit.sarif)",
         data=sarif_data_str,
         file_name="qa_audit.sarif",
         mime="application/json",

@@ -8,7 +8,6 @@ and resilient timeout/error handling.
 import logging
 from pathlib import Path
 import shutil
-from typing import Optional
 
 from playwright.sync_api import Error as PlaywrightError, TimeoutError as PlaywrightTimeoutError, sync_playwright
 
@@ -25,24 +24,7 @@ def capture_url_screenshot(
     timeout_ms: int = 15000,
     fallback_on_error: bool = True,
 ) -> str:
-    """
-    Launches headless Chromium, navigates to target URL, and captures a screenshot.
-    If the environment lacks browser binaries or network fails, performs a clean fallback
-    to 'test_samples/sample_ui.png' without breaking execution.
-
-    Args:
-        url: Target HTTP/HTTPS or local URL to capture.
-        output_path: File destination for the resulting PNG screenshot.
-        timeout_ms: Maximum navigation timeout in milliseconds (default: 15000ms / 15s).
-        fallback_on_error: Whether to return sample_ui.png on network/binary failure.
-
-    Returns:
-        The string path of the captured screenshot (or sample fallback) on success.
-
-    Raises:
-        ValueError: If url is empty.
-        RuntimeError: If navigation fails and fallback_on_error is False.
-    """
+    """Captures standard 1280x800 desktop screenshot using Playwright Chromium with low memory footprint."""
     if not url or not url.strip():
         raise ValueError("Target URL cannot be empty.")
 
@@ -59,9 +41,14 @@ def capture_url_screenshot(
 
     logger.info(f"[QA-Swarm:Browser] Capturing live screenshot of: {trimmed_url} -> {target_path}")
 
+    browser = None
+    context = None
     try:
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
+            browser = p.chromium.launch(
+                headless=True,
+                args=["--disable-gpu", "--disable-dev-shm-usage", "--no-sandbox"],
+            )
             try:
                 # Desktop viewport standard 1280x800
                 context = browser.new_context(
@@ -70,7 +57,7 @@ def capture_url_screenshot(
                 )
                 page = context.new_page()
 
-                # Navigate with 15s timeout and wait until domcontentloaded
+                # Navigate with timeout and wait until domcontentloaded
                 page.goto(
                     trimmed_url,
                     timeout=timeout_ms,
@@ -82,7 +69,16 @@ def capture_url_screenshot(
                 logger.info(f"[QA-Swarm:Browser] Successfully saved live screenshot to: {target_path}")
                 return str(target_path)
             finally:
-                browser.close()
+                if context is not None:
+                    try:
+                        context.close()
+                    except Exception as close_err:
+                        logger.debug(f"[QA-Swarm:Browser] Context close error: {close_err}")
+                if browser is not None:
+                    try:
+                        browser.close()
+                    except Exception as close_err:
+                        logger.debug(f"[QA-Swarm:Browser] Browser close error: {close_err}")
 
     except (PlaywrightTimeoutError, PlaywrightError, Exception) as exc:
         logger.warning(

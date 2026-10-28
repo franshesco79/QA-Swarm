@@ -7,6 +7,7 @@ transparent deterministic fallback.
 """
 
 import base64
+import io
 import json
 import logging
 import os
@@ -14,6 +15,8 @@ import re
 import time
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar
+
+from PIL import Image
 
 try:
     from dotenv import load_dotenv
@@ -173,10 +176,31 @@ def with_exponential_backoff(
     return decorator
 
 
+def optimize_and_encode_image(image_path: Path | str, max_width: int = 1280) -> str:
+    """Optimizes image in memory with Pillow, resizing if width > max_width, and returns compressed Base64."""
+    resolved_path = Path(image_path).resolve()
+    with Image.open(resolved_path) as img:
+        if img.width > max_width:
+            aspect_ratio = img.height / float(img.width)
+            new_height = max(1, int(round(max_width * aspect_ratio)))
+            img = img.resize((max_width, new_height), Image.Resampling.LANCZOS)
+
+        buffer = io.BytesIO()
+        img_format = (img.format or "PNG").upper()
+        if img_format in ("JPEG", "JPG"):
+            if img.mode in ("RGBA", "P"):
+                img = img.convert("RGB")
+            img.save(buffer, format="JPEG", optimize=True, quality=85)
+        else:
+            img.save(buffer, format="PNG", optimize=True)
+
+        buffer.seek(0)
+        return base64.b64encode(buffer.getvalue()).decode("utf-8")
+
+
 def encode_image_to_base64(image_path: Path | str) -> str:
-    """Reads an image file and encodes it to a base64 string."""
-    with open(image_path, "rb") as image_file:
-        return base64.b64encode(image_file.read()).decode("utf-8")
+    """Reads and encodes an image to base64, applying in-memory Pillow optimization."""
+    return optimize_and_encode_image(image_path, max_width=1280)
 
 
 class QASwarmClient:
@@ -209,10 +233,28 @@ class QASwarmClient:
         else:
             self.mock_file_path = DEFAULT_MOCK_FILE
 
+        # Reusable HTTP Session with connection pooling & keep-alive
+        self._session: requests.Session = requests.Session()
+        session_headers = {
+            "Connection": "keep-alive",
+            "User-Agent": "QA-Swarm/1.0",
+        }
+        if self.meta_api_key:
+            session_headers["Authorization"] = f"Bearer {self.meta_api_key}"
+        self._session.headers.update(session_headers)
+
+    def close(self) -> None:
+        """Closes the underlying requests HTTP connection pool."""
+        self._session.close()
+
+    def __enter__(self) -> "QASwarmClient":
+        return self
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        self.close()
+
     def load_mock_audit_report(self) -> QAAuditReport:
-        """
-        Loads and validates deterministic mock audit report from disk without network calls.
-        """
+        """Loads and validates deterministic mock audit report from disk without network calls."""
         if not self.mock_file_path.exists():
             raise FileNotFoundError(
                 f"Mock audit sample not found at expected location: {self.mock_file_path}"
@@ -225,15 +267,14 @@ class QASwarmClient:
 
     @with_exponential_backoff(max_retries=3, initial_delay=1.0)
     def _execute_remote_call(self, endpoint: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Executes remote HTTP POST to Meta AI inference service with retry handling.
-        """
+        """Executes remote HTTP POST to Meta AI inference service with retry handling and connection pooling."""
         headers = {
-            "Authorization": f"Bearer {self.meta_api_key}",
             "Content-Type": "application/json",
         }
+        if self.meta_api_key:
+            headers["Authorization"] = f"Bearer {self.meta_api_key}"
         url = endpoint if endpoint.startswith("http") else f"{self.BASE_URL}{endpoint}"
-        response = requests.post(url, json=payload, headers=headers, timeout=30.0)
+        response = self._session.post(url, json=payload, headers=headers, timeout=30.0)
         response.raise_for_status()
         return response.json()
 
@@ -242,12 +283,7 @@ class QASwarmClient:
         image_path: Path | str = DEFAULT_SAMPLE_UI,
         prompt_text: str = "overflow button",
     ) -> List[VisualDefect]:
-        """
-        Agent 1: Spatial Vision with SAM 3.1.
-        Calls POST https://api.meta.ai/v1/responses with base64 image and parses
-        coordinate tokens: <|box;x1=(d+);y1=(d+);x2=(d+);y2=(d+);w=(d+);h=(d+)|>
-        into normalized [ymin, xmin, ymax, xmax] VisualDefect models.
-        """
+        """Agent 1: Spatial Vision with SAM 3.1 to detect layout anomalies and bounding boxes."""
         if self.use_mock or not self.meta_api_key:
             logger.info("[QA-Swarm] Using mock fallback for SAM 3.1 vision inspection.")
             mock_report = self.load_mock_audit_report()
@@ -308,12 +344,7 @@ class QASwarmClient:
         defects: List[VisualDefect],
         file_name: str = "broken_component.py",
     ) -> Tuple[List[RootCauseLink], List[CodePatch]]:
-        """
-        Agent 2: Causal Correlation and Code Patching with Muse Spark 1.3.
-        Calls POST https://api.meta.ai/v1/responses sending source code and defect coordinates,
-        orchestrating AGENTIC_MCP_TOOLS, and requesting a structured JSON payload conforming
-        strictly to RootCauseLink and CodePatch Pydantic v2 schemas.
-        """
+        """Agent 2: Causal Correlation and Code Patching with Muse Spark 1.3."""
         if self.use_mock or not self.meta_api_key:
             logger.info("[QA-Swarm] Using mock fallback for Muse Spark 1.3 correlation & patch.")
             mock_report = self.load_mock_audit_report()
@@ -383,9 +414,7 @@ class QASwarmClient:
         screenshot_path: Optional[str | Path] = None,
         code_path: Optional[str | Path] = None,
     ) -> QAAuditReport:
-        """
-        Runs an end-to-end visual QA audit via Meta AI swarm or transparent local mock.
-        """
+        """Runs an end-to-end multimodal visual QA audit via Meta AI swarm or transparent local mock."""
         if self.use_mock or not self.meta_api_key:
             logger.info(
                 f"[QA-Swarm] USE_MOCK={self.use_mock} or META_API_KEY missing. "

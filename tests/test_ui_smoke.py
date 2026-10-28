@@ -82,3 +82,20 @@ def test_orchestrator_ui_integration():
     assert len(report.patches) >= 1
     # Check bottom panel tabs (chaos suite)
     assert len(report.chaos_suite) == 5
+
+
+def test_streamlit_caching_and_session_state_persistence():
+    """
+    Verifies that app/main.py defines cached audit functions and preserves
+    audit_result in session state for instant 0ms responses.
+    """
+    with open(APP_MAIN_PATH, "r", encoding="utf-8") as f:
+        code = f.read()
+
+    assert "@st.cache_data" in code
+    assert "execute_cached_swarm_audit" in code
+    assert 'st.session_state["audit_result"]' in code
+    assert "compute_payload_hash" in code
+
+    at = AppTest.from_file(str(APP_MAIN_PATH)).run()
+    assert len(at.exception) == 0
