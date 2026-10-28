@@ -609,6 +609,15 @@ with col_right:
         )
         st.code(diff_text, language="diff")
 
+        patched_source = st.session_state.healed_code or st.session_state.code_content
+        st.download_button(
+            label="✨ Download Patched File (Auto-Healed)",
+            data=patched_source,
+            file_name=primary_rc.target_file,
+            mime="text/x-python",
+            use_container_width=True,
+        )
+
         col_orig_c, col_patch_c = st.columns(2)
         with col_orig_c:
             st.markdown(f"**Original (`{primary_rc.target_file}`)**")

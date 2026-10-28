@@ -93,6 +93,8 @@ def parse_args(argv=None):
     )
     parser.add_argument(
         "--sarif",
+        "--output",
+        dest="sarif",
         type=str,
         default="test_samples/qa_audit.sarif",
         help="Output path for SARIF v2.1.0 report (default: test_samples/qa_audit.sarif)",
