@@ -19,6 +19,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from core.analyzer import apply_patch_to_code, generate_diff_view
+from core.browser import capture_url_screenshot
 from core.orchestrator import export_to_sarif, run_full_audit
 from core.schemas import QAAuditReport
 from core.test_generator import validate_test_syntax
@@ -42,15 +43,12 @@ st.markdown(
     """
     <style>
     /* Clean layout & hide Streamlit default chrome */
-    header[data-testid="stHeader"] {
-        display: none !important;
-    }
-    footer {
+    header[data-testid="stHeader"], footer, #MainMenu {
         display: none !important;
     }
     .block-container {
-        padding-top: 1.5rem;
-        max-width: 1200px;
+        padding-top: 1.5rem !important;
+        max-width: 1240px !important;
     }
 
     /* Metric cards styling */
@@ -120,6 +118,137 @@ st.markdown(
         padding: 2px 6px;
         border-radius: 4px;
     }
+
+    /* Pipeline Cards (Linear / Datadog DevTool style) */
+    .pipeline-container {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+        margin: 18px 0 24px 0;
+    }
+    @media (max-width: 960px) {
+        .pipeline-container {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    @media (max-width: 600px) {
+        .pipeline-container {
+            grid-template-columns: 1fr;
+        }
+    }
+    .pipeline-card {
+        background: #111827;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 18px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 180px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .pipeline-card:hover {
+        border-color: rgba(59, 130, 246, 0.4);
+        transform: translateY(-2px);
+    }
+    .pipeline-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    .stage-index {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #64748B;
+        letter-spacing: 0.5px;
+    }
+    .micro-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 0.70rem;
+        font-weight: 600;
+        letter-spacing: 0.4px;
+        padding: 2px 7px;
+        border-radius: 9999px;
+        background: rgba(34, 197, 94, 0.12);
+        color: #4ADE80;
+        border: 1px solid rgba(34, 197, 94, 0.25);
+    }
+    .dot-pulse {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: #22C55E;
+        box-shadow: 0 0 6px #22C55E;
+    }
+    .stage-title {
+        font-size: 0.96rem;
+        font-weight: 700;
+        color: #F9FAFB;
+        margin-bottom: 6px;
+        letter-spacing: -0.2px;
+    }
+    .stage-description {
+        font-size: 0.80rem;
+        color: #9CA3AF;
+        line-height: 1.45;
+        margin-bottom: 14px;
+        flex-grow: 1;
+    }
+    .stage-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 10px;
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .model-pill {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 0.72rem;
+        color: #60A5FA;
+        background: rgba(59, 130, 246, 0.12);
+        padding: 2px 7px;
+        border-radius: 5px;
+        border: 1px solid rgba(59, 130, 246, 0.25);
+    }
+    .meta-label {
+        font-size: 0.70rem;
+        font-weight: 600;
+        color: #94A3B8;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Target context bar */
+    .target-context-bar {
+        background: #111827;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 10px;
+        padding: 12px 18px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 0.80rem;
+        color: #94A3B8;
+    }
+    .target-context-bar .target-tag {
+        color: #38BDF8;
+        font-weight: 600;
+    }
+    .target-context-bar .status-pill {
+        background: rgba(34, 197, 94, 0.15);
+        color: #4ADE80;
+        padding: 2px 8px;
+        border-radius: 9999px;
+        border: 1px solid rgba(34, 197, 94, 0.3);
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -127,16 +256,16 @@ st.markdown(
 
 
 def initialize_session():
-    """Initializes session state defaults."""
-    if "image_path" not in st.session_state:
+    """Initializes session state defaults with pre-loaded demo artifacts."""
+    if "image_path" not in st.session_state or not st.session_state.image_path:
         st.session_state.image_path = str(DEFAULT_SAMPLE_UI) if DEFAULT_SAMPLE_UI.exists() else None
-    if "code_content" not in st.session_state:
+    if "code_content" not in st.session_state or not st.session_state.code_content:
         if DEFAULT_BROKEN_CODE.exists():
             with open(DEFAULT_BROKEN_CODE, "r", encoding="utf-8") as f:
                 st.session_state.code_content = f.read()
         else:
             st.session_state.code_content = ""
-    if "code_filename" not in st.session_state:
+    if "code_filename" not in st.session_state or not st.session_state.code_filename:
         st.session_state.code_filename = "broken_component.py"
     if "audit_report" not in st.session_state:
         st.session_state.audit_report = None
@@ -160,34 +289,72 @@ with st.sidebar:
     st.caption("Autonomous Multimodal QA & Healing Engine")
     st.markdown("---")
 
-    # Priority Action: Load Demo Sample
-    st.markdown("### 🎯 Quick Start")
-    if st.button("📁 Load Demo Sample", use_container_width=True):
-        st.session_state.image_path = str(DEFAULT_SAMPLE_UI)
-        if DEFAULT_BROKEN_CODE.exists():
+    # Dual Input Ingestion Tabs
+    st.markdown("### 📥 Ingestion Mode")
+    tab_local, tab_live = st.tabs(["📁 CI/CD Sample", "🌐 Live URL (Playwright MCP)"])
+
+    with tab_local:
+        st.markdown("##### Quick Start Demo")
+        if st.button("📁 Load Demo Sample", use_container_width=True):
+            st.session_state.image_path = str(DEFAULT_SAMPLE_UI)
+            if DEFAULT_BROKEN_CODE.exists():
+                with open(DEFAULT_BROKEN_CODE, "r", encoding="utf-8") as f:
+                    st.session_state.code_content = f.read()
+            st.session_state.code_filename = "broken_component.py"
+            st.session_state.audit_report = None
+            st.session_state.healed_code = None
+            st.success("✅ Demo sample loaded: E-Commerce button with 120px layout overflow!")
+
+        st.markdown("##### Custom File Upload")
+        uploaded_img = st.file_uploader("Upload UI Screenshot", type=["png", "jpg", "jpeg"])
+        if uploaded_img:
+            temp_img_path = PROJECT_ROOT / "test_samples" / f"custom_{uploaded_img.name}"
+            with open(temp_img_path, "wb") as f:
+                f.write(uploaded_img.getbuffer())
+            st.session_state.image_path = str(temp_img_path)
+            st.info(f"Loaded: {uploaded_img.name}")
+        elif not st.session_state.image_path and DEFAULT_SAMPLE_UI.exists():
+            st.session_state.image_path = str(DEFAULT_SAMPLE_UI)
+
+        uploaded_code = st.file_uploader("Upload Component Code", type=["py", "css", "js"])
+        if uploaded_code:
+            st.session_state.code_content = uploaded_code.getvalue().decode("utf-8")
+            st.session_state.code_filename = uploaded_code.name
+            st.info(f"Loaded: {uploaded_code.name}")
+        elif not st.session_state.code_content and DEFAULT_BROKEN_CODE.exists():
             with open(DEFAULT_BROKEN_CODE, "r", encoding="utf-8") as f:
                 st.session_state.code_content = f.read()
-        st.session_state.code_filename = "broken_component.py"
-        st.session_state.audit_report = None
-        st.session_state.healed_code = None
-        st.success("✅ Demo sample loaded: E-Commerce button with 120px layout overflow!")
+            st.session_state.code_filename = "broken_component.py"
 
-    st.markdown("---")
-    st.markdown("### 📤 Custom Input")
-
-    uploaded_img = st.file_uploader("Upload UI Screenshot", type=["png", "jpg", "jpeg"])
-    if uploaded_img:
-        temp_img_path = PROJECT_ROOT / "test_samples" / f"custom_{uploaded_img.name}"
-        with open(temp_img_path, "wb") as f:
-            f.write(uploaded_img.getbuffer())
-        st.session_state.image_path = str(temp_img_path)
-        st.info(f"Loaded: {uploaded_img.name}")
-
-    uploaded_code = st.file_uploader("Upload Component Code", type=["py", "css", "js"])
-    if uploaded_code:
-        st.session_state.code_content = uploaded_code.getvalue().decode("utf-8")
-        st.session_state.code_filename = uploaded_code.name
-        st.info(f"Loaded: {uploaded_code.name}")
+    with tab_live:
+        st.markdown("##### Playwright Live Capture")
+        live_url = st.text_input(
+            "Live Web Target",
+            value="http://localhost:3000",
+            placeholder="http://localhost:3000 o https://example.com",
+            help="Automated Playwright Chromium viewport capture (1280x800).",
+        )
+        if st.button("🌐 Capturar y Analizar con Playwright", type="primary", use_container_width=True):
+            if not live_url or not live_url.strip():
+                st.error("Please enter a valid target URL.")
+            else:
+                try:
+                    with st.spinner(f"Launching Playwright Chromium & capturing {live_url}..."):
+                        target_capture = PROJECT_ROOT / "test_samples" / "live_capture.png"
+                        captured_file = capture_url_screenshot(
+                            live_url,
+                            output_path=str(target_capture),
+                        )
+                        st.session_state.image_path = captured_file
+                        st.session_state.audit_report = None
+                        st.session_state.healed_code = None
+                        st.success(f"Captured: {Path(captured_file).name} (1280x800)")
+                        if trigger_audit(mock_mode):
+                            st.rerun()
+                except RuntimeError as exc:
+                    st.error(f"Playwright Capture Error: {exc}")
+                except Exception as exc:
+                    st.error(f"Unexpected capture failure: {exc}")
 
     st.markdown("---")
     st.markdown("### ⚙️ Engine Settings")
@@ -203,49 +370,124 @@ with st.sidebar:
 # ==============================================================================
 st.title("QA-Swarm: Autonomous Multimodal QA & Healing Engine")
 
-if run_audit_btn:
+
+def trigger_audit(mock: bool) -> bool:
+    """Executes the full multimodal swarm audit and updates state."""
     if not st.session_state.image_path or not Path(st.session_state.image_path).exists():
         st.error("Please load the demo sample or upload a valid UI screenshot first.")
-    elif not st.session_state.code_content:
+        return False
+    if not st.session_state.code_content:
         st.error("Please load the demo sample or upload component source code first.")
-    else:
-        start_clock = time.time()
-        with st.spinner("Coordinating Agent Swarm (SAM 3 Vision + Muse Correlation)..."):
-            time.sleep(2.0)  # Elegant simulated inference delay
-            report = run_full_audit(
-                image_path=st.session_state.image_path,
-                code_path_or_str=st.session_state.code_content,
-                file_name=st.session_state.code_filename,
-                mock=mock_mode,
-            )
-            elapsed = time.time() - start_clock
-            st.session_state.execution_time = f"{elapsed:.1f}s"
-            st.session_state.audit_report = report
-            if report.patches:
-                st.session_state.healed_code = apply_patch_to_code(
-                    st.session_state.code_content, report.patches[0]
-                )
-            st.toast("Swarm Audit Completed!", icon="⚡")
+        return False
 
-# If no audit executed yet, display welcoming instructions
+    start_clock = time.time()
+    with st.spinner("Coordinating Agent Swarm (SAM 3.1 Vision + Muse Spark Correlation)..."):
+        time.sleep(1.5)  # Simulated inference delay
+        report = run_full_audit(
+            image_path=st.session_state.image_path,
+            code_path_or_str=st.session_state.code_content,
+            file_name=st.session_state.code_filename,
+            mock=mock,
+        )
+        elapsed = time.time() - start_clock
+        st.session_state.execution_time = f"{elapsed:.1f}s"
+        st.session_state.audit_report = report
+        if report.patches:
+            st.session_state.healed_code = apply_patch_to_code(
+                st.session_state.code_content, report.patches[0]
+            )
+        st.toast("Swarm Audit Completed!", icon="⚡")
+        return True
+
+
+if run_audit_btn:
+    if trigger_audit(mock_mode):
+        st.rerun()
+
+# If no audit executed yet, display visual pipeline diagram and central action button
 if not st.session_state.audit_report:
+    # Target context bar
     st.markdown(
         """
-        <div class="swarm-card" style="background-color: #111827; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 24px; color: #E5E7EB;">
-            <h3 style="color: #F9FAFB; margin-top: 0;">👋 Welcome to QA-Swarm</h3>
-            <p style="color: #E5E7EB; line-height: 1.6;">QA-Swarm bridges spatial visual intelligence with automated code healing:</p>
-            <ul style="color: #E5E7EB; line-height: 1.8;">
-                <li><b style="color: #FFFFFF;">Spatial Vision:</b> SAM 3 scans screenshots for layout clipping, overflows, and visual bugs.</li>
-                <li><b style="color: #FFFFFF;">Root-Cause Linking:</b> Muse Code correlates pixel bounding boxes with offending source code lines.</li>
-                <li><b style="color: #FFFFFF;">Healing Engine:</b> Synthesizes deterministic Pydantic-validated patches with diff views.</li>
-                <li><b style="color: #FFFFFF;">Adversarial Chaos:</b> Stress-tests components across buffer overflow, RTL, type mutation, and concurrency.</li>
-                <li><b style="color: #FFFFFF;">CI/CD Delivery:</b> Outputs executable Playwright regression suites and OASIS SARIF v2.1.0 reports.</li>
-            </ul>
-            <p style="color: #E5E7EB; margin-bottom: 0;">👉 Click <b>"📁 Load Demo Sample"</b> in the sidebar, then hit <b>"🚀 Run QA-Swarm Audit"</b> to begin.</p>
+        <div class="target-context-bar">
+            <span>TARGET ARTIFACTS: <span class="target-tag">test_samples/sample_ui.png</span> &amp; <span class="target-tag">test_samples/broken_component.py</span></span>
+            <span class="status-pill">PRE-LOADED IN MEMORY</span>
         </div>
         """,
         unsafe_allow_html=True,
     )
+
+    # 4 Horizontal Pipeline Cards (Linear/Datadog style)
+    st.markdown(
+        """
+        <div class="pipeline-container">
+            <div class="pipeline-card">
+                <div class="pipeline-card-header">
+                    <span class="stage-index">STAGE 01</span>
+                    <span class="micro-badge"><span class="dot-pulse"></span> READY</span>
+                </div>
+                <div class="stage-title">1. SAM 3.1 Spatial Cortex</div>
+                <div class="stage-description">Sub-pixel layout segmentation, bounding box extraction &amp; visual anomaly localization</div>
+                <div class="stage-meta">
+                    <span class="model-pill">sam-3.1</span>
+                    <span class="meta-label">Vision Cortex</span>
+                </div>
+            </div>
+            
+            <div class="pipeline-card">
+                <div class="pipeline-card-header">
+                    <span class="stage-index">STAGE 02</span>
+                    <span class="micro-badge"><span class="dot-pulse"></span> READY</span>
+                </div>
+                <div class="stage-title">2. Muse Spark 1.3 Causal Fixer</div>
+                <div class="stage-description">Pixel-to-code multimodal correlation, offending token mapping &amp; deterministic patch synthesis</div>
+                <div class="stage-meta">
+                    <span class="model-pill">muse-spark-1.3</span>
+                    <span class="meta-label">Causal Fixer</span>
+                </div>
+            </div>
+            
+            <div class="pipeline-card">
+                <div class="pipeline-card-header">
+                    <span class="stage-index">STAGE 03</span>
+                    <span class="micro-badge"><span class="dot-pulse"></span> READY</span>
+                </div>
+                <div class="stage-title">3. Adversarial Chaos Engine</div>
+                <div class="stage-description">Adversarial stress suite across 5 vectors: buffer overflow, RTL Unicode, type mutation &amp; storm</div>
+                <div class="stage-meta">
+                    <span class="model-pill">chaos-engine</span>
+                    <span class="meta-label">Resilience 0-100</span>
+                </div>
+            </div>
+            
+            <div class="pipeline-card">
+                <div class="pipeline-card-header">
+                    <span class="stage-index">STAGE 04</span>
+                    <span class="micro-badge"><span class="dot-pulse"></span> READY</span>
+                </div>
+                <div class="stage-title">4. OASIS SARIF v2.1.0 Gate</div>
+                <div class="stage-description">AST-verified Playwright test generation &amp; OASIS SARIF v2.1.0 delivery for GitHub Actions</div>
+                <div class="stage-meta">
+                    <span class="model-pill">sarif-v2.1.0</span>
+                    <span class="meta-label">Policy Gate</span>
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
+    with col_btn2:
+        execute_central_btn = st.button(
+            "⚡ Ejecutar Auditoría del Enjambre",
+            type="primary",
+            use_container_width=True,
+        )
+        if execute_central_btn:
+            if trigger_audit(mock_mode):
+                st.rerun()
+
     st.stop()
 
 # ==============================================================================

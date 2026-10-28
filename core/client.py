@@ -2,7 +2,8 @@
 API Client and Meta AI Swarm Runner for QA-Swarm.
 Integrates official Meta AI endpoints for SAM 3.1 (spatial visual segmentation)
 and Muse Spark 1.3 (causal root-cause correlation & code patch synthesis),
-with exponential backoff retries and transparent deterministic fallback.
+with agentic MCP tools orchestration, exponential backoff retries, and
+transparent deterministic fallback.
 """
 
 import base64
@@ -14,7 +15,12 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar
 
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    def load_dotenv(*args: Any, **kwargs: Any) -> None:
+        pass
+
 import requests
 
 from core.schemas import CodePatch, QAAuditReport, RootCauseLink, VisualDefect
@@ -33,6 +39,94 @@ DEFAULT_BROKEN_CODE = PROJECT_ROOT / "test_samples" / "broken_component.py"
 SAM3_BOX_PATTERN = re.compile(
     r"<\|box;x1=(\d+);y1=(\d+);x2=(\d+);y2=(\d+);w=(\d+);h=(\d+)\|>"
 )
+
+# Explicit schema of agentic / MCP tools orchestrated by QA-Swarm
+AGENTIC_MCP_TOOLS: List[Dict[str, Any]] = [
+    {
+        "type": "function",
+        "function": {
+            "name": "sam_spatial_scanner",
+            "description": "Segmentación visual de anomalías de layout y cálculo de bounding boxes espaciales.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "image_url": {
+                        "type": "string",
+                        "description": "Data URL o ruta de la imagen en base64.",
+                    },
+                    "prompt_target": {
+                        "type": "string",
+                        "description": "Elemento o anomalía visual objetivo (ej. 'overflow button').",
+                    },
+                },
+                "required": ["image_url", "prompt_target"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "playwright_live_inspector",
+            "description": "Captura e inspección de DOM en vivo usando Chromium headless a 1280x800.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "target_url": {
+                        "type": "string",
+                        "description": "URL HTTP/HTTPS objetivo para inspección en vivo.",
+                    },
+                    "viewport": {
+                        "type": "string",
+                        "description": "Resolución de pantalla estándar (1280x800).",
+                    },
+                },
+                "required": ["target_url"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "chaos_stress_engine",
+            "description": "Inyección de los 5 vectores adversarios (buffer overflow, RTL, mutación de tipo, sintaxis y storm).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "component_code": {
+                        "type": "string",
+                        "description": "Código fuente a estresar.",
+                    },
+                    "vectors_count": {
+                        "type": "integer",
+                        "description": "Cantidad de vectores de estrés (5).",
+                    },
+                },
+                "required": ["component_code"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "sarif_gate_exporter",
+            "description": "Generación y validación del reporte de calidad OASIS SARIF v2.1.0 para CI/CD.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "audit_report": {
+                        "type": "object",
+                        "description": "Reporte estructurado QAAuditReport.",
+                    },
+                    "output_path": {
+                        "type": "string",
+                        "description": "Ruta destino del archivo .sarif.",
+                    },
+                },
+                "required": ["audit_report", "output_path"],
+            },
+        },
+    },
+]
 
 
 def with_exponential_backoff(
@@ -88,8 +182,8 @@ def encode_image_to_base64(image_path: Path | str) -> str:
 class QASwarmClient:
     """
     Core client coordinating Meta AI APIs (SAM 3.1 and Muse Spark 1.3).
-    Supports live multimodal calls with exponential backoff retries and
-    guaranteed deterministic mock fallback.
+    Supports live multimodal calls with exponential backoff retries,
+    orchestrates agentic MCP tools, and guarantees deterministic mock fallback.
     """
 
     BASE_URL: str = "https://api.meta.ai/v1"
@@ -217,7 +311,8 @@ class QASwarmClient:
         """
         Agent 2: Causal Correlation and Code Patching with Muse Spark 1.3.
         Calls POST https://api.meta.ai/v1/responses sending source code and defect coordinates,
-        requesting a structured JSON payload conforming to RootCauseLink and CodePatch schemas.
+        orchestrating AGENTIC_MCP_TOOLS, and requesting a structured JSON payload conforming
+        strictly to RootCauseLink and CodePatch Pydantic v2 schemas.
         """
         if self.use_mock or not self.meta_api_key:
             logger.info("[QA-Swarm] Using mock fallback for Muse Spark 1.3 correlation & patch.")
@@ -227,18 +322,21 @@ class QASwarmClient:
         try:
             defect_bboxes = [d.bbox for d in defects]
             system_prompt = (
-                "You are an expert AI code auditor. Given a UI component source code and "
+                "You are an expert AI code auditor in QA-Swarm. Given a UI component source code and "
                 "visual defect bounding boxes, identify the root cause line number and "
                 "generate a surgical CodePatch replacing rigid styling with fluid responsive CSS. "
-                "Respond strictly with a JSON object: "
+                "You orchestrate the following MCP tools: "
+                f"{[t['function']['name'] for t in AGENTIC_MCP_TOOLS]}. "
+                "Respond strictly with a JSON object conforming to RootCauseLink and CodePatch: "
                 '{"root_cause": {"target_file": "' + file_name + '", "target_line": 18, '
-                '"offending_token": "width: 120px", "explanation": "..."}, '
+                '"offending_token": "width: 120px", "explanation": "Rigid pixel width causes layout overflow."}, '
                 '"patch": {"target_file": "' + file_name + '", "target_line": 18, '
                 '"original_snippet": "width: 120px;", "replacement_snippet": "width: 100%;"}}'
             )
 
             payload = {
                 "model": "muse-spark-1.3",
+                "tools": AGENTIC_MCP_TOOLS,
                 "input": [
                     {
                         "type": "message",
@@ -246,7 +344,11 @@ class QASwarmClient:
                         "content": [
                             {
                                 "type": "input_text",
-                                "text": f"{system_prompt}\n\nVisual Bounding Boxes: {defect_bboxes}\n\nSource Code:\n{source_code}",
+                                "text": (
+                                    f"{system_prompt}\n\n"
+                                    f"Visual Bounding Boxes: {defect_bboxes}\n\n"
+                                    f"Source Code ({file_name}):\n{source_code}"
+                                ),
                             }
                         ],
                     }
