@@ -172,13 +172,18 @@ Open **`http://localhost:8501`** in your browser:
 ### Workflow B: Headless CI/CD Gate (CLI)
 Run automated audits directly in CI/CD pipelines (GitHub Actions, GitLab CI, Jenkins):
 ```bash
+# Option 1: Static image audit
 python -m core.cli --ui test_samples/sample_ui.png --code test_samples/broken_component.py --output test_samples/qa_audit.sarif --allow-blocked
+
+# Option 2: Live Web URL audit via Playwright headless Chromium capture
+python -m core.cli --url https://example.com --code test_samples/broken_component.py --output test_samples/qa_audit.sarif --allow-blocked
 ```
 
 #### CLI Argument Reference
 
 | Flag | Type | Default | Description |
 | :--- | :---: | :--- | :--- |
+| `--url` | string | `None` | Target live web URL to capture and audit via Playwright headless Chromium |
 | `--ui` | string | `test_samples/sample_ui.png` | Target UI screenshot image (PNG/JPG) |
 | `--code` | string | `test_samples/broken_component.py` | Target component source code file |
 | `--output` / `--sarif` | string | `test_samples/qa_audit.sarif` | Destination path for OASIS SARIF v2.1.0 report |
@@ -222,7 +227,7 @@ jobs:
 
 ## 🧪 Comprehensive Test Suite
 
-QA-Swarm maintains 100% test pass rate across 40 unit, integration, and UI smoke tests:
+QA-Swarm maintains 100% test pass rate across 43 unit, integration, and UI smoke tests:
 
 ```bash
 pytest tests/ -v
@@ -230,48 +235,20 @@ pytest tests/ -v
 
 ```text
 ============================= test session starts =============================
-tests/test_analyzer.py::test_analyze_source_code_mock PASSED             [  2%]
-tests/test_analyzer.py::test_generate_code_patch_schema PASSED           [  5%]
-tests/test_analyzer.py::test_apply_patch_correctness PASSED              [  7%]
-tests/test_analyzer.py::test_generate_diff_contains_markers PASSED       [ 10%]
-tests/test_app.py::test_app_main_exists_and_is_valid_ast PASSED          [ 12%]
-tests/test_app.py::test_app_main_contains_key_components PASSED          [ 15%]
-tests/test_browser.py::test_capture_url_screenshot_empty_url_raises PASSED [ 17%]
-tests/test_browser.py::test_capture_url_screenshot_with_data_url PASSED  [ 20%]
-tests/test_browser.py::test_capture_url_screenshot_fallback_on_unreachable_host PASSED [ 22%]
-tests/test_browser.py::test_capture_url_screenshot_invalid_host_raises_when_fallback_disabled PASSED [ 25%]
-tests/test_chaos.py::test_generate_chaos_suite_returns_five_cases PASSED [ 27%]
-tests/test_chaos.py::test_chaos_test_cases_pydantic_validation PASSED    [ 30%]
-tests/test_chaos.py::test_chaos_stress_vectors_are_diverse PASSED        [ 32%]
-tests/test_chaos.py::test_evaluate_resilience_score_range PASSED         [ 35%]
-tests/test_correlator.py::test_correlate_single_defect_mock PASSED       [ 37%]
-tests/test_correlator.py::test_correlate_all_defects_consistency PASSED  [ 40%]
-tests/test_correlator.py::test_correlate_empty_code_graceful_fallback PASSED [ 42%]
-tests/test_generator.py::test_generate_playwright_test_structure PASSED  [ 45%]
-tests/test_generator.py::test_generated_test_is_valid_python_ast PASSED  [ 47%]
-tests/test_generator.py::test_validate_test_syntax_detects_syntax_errors PASSED [ 50%]
-tests/test_generator.py::test_save_generated_test_writes_file PASSED     [ 52%]
-tests/test_orchestrator.py::test_calculate_health_score_scoring_logic PASSED [ 55%]
-tests/test_orchestrator.py::test_export_to_sarif_schema_compliance PASSED [ 57%]
-tests/test_orchestrator.py::test_run_full_audit_pipeline PASSED          [ 60%]
-tests/test_orchestrator.py::test_cli_execution PASSED                    [ 62%]
-tests/test_schemas.py::test_mock_audit_json_validity PASSED              [ 65%]
-tests/test_schemas.py::test_client_run_audit_fallback PASSED             [ 67%]
-tests/test_schemas.py::test_client_call_sam3_vision_fallback PASSED      [ 70%]
-tests/test_schemas.py::test_client_call_muse_spark_correlation_fallback PASSED [ 72%]
-tests/test_schemas.py::test_client_sam3_box_regex_parsing PASSED         [ 75%]
-tests/test_schemas.py::test_swarm_audit_result_alias PASSED              [ 77%]
-tests/test_schemas.py::test_optimize_and_encode_image_resizes_large_image PASSED [ 80%]
-tests/test_schemas.py::test_client_connection_pool_session PASSED        [ 82%]
-tests/test_ui_smoke.py::test_app_syntax_and_dependencies PASSED          [ 85%]
-tests/test_ui_smoke.py::test_streamlit_apptest_initial_render PASSED     [ 87%]
-tests/test_ui_smoke.py::test_orchestrator_ui_integration PASSED          [ 90%]
-tests/test_ui_smoke.py::test_streamlit_caching_and_session_state_persistence PASSED [ 92%]
-tests/test_vision.py::test_normalize_coordinates_clamping PASSED         [ 95%]
-tests/test_vision.py::test_draw_bounding_boxes_creates_file PASSED       [ 97%]
-tests/test_vision.py::test_inspect_ui_elements_mock PASSED               [100%]
+tests/test_analyzer.py (4 passed)
+tests/test_app.py (2 passed)
+tests/test_browser.py (4 passed)
+tests/test_chaos.py (4 passed)
+tests/test_contracts.py (3 passed)
+tests/test_correlator.py (3 passed)
+tests/test_generator.py (4 passed)
+tests/test_orchestrator.py (4 passed)
+tests/test_schemas.py (8 passed)
+tests/test_ui_smoke.py (4 passed)
+tests/test_vision.py (3 passed)
 
-============================= 40 passed in 10.67s =============================
+============================= 43 passed in 12.17s =============================
+```
 ```
 
 ---

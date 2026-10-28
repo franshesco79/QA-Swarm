@@ -24,6 +24,9 @@ def test_mock_audit_json_validity():
     assert report.root_causes[0].target_line == 18
     assert report.patches[0].replacement_snippet == "width: 100%;"
     assert len(report.chaos_suite) == 5
+    assert len(report.mcp_trace) == 4
+    assert report.mcp_trace[0].model_used == "sam-3.1"
+    assert report.mcp_trace[1].model_used == "muse-spark-1.3"
 
 
 def test_client_run_audit_fallback():

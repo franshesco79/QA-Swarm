@@ -311,7 +311,7 @@ initialize_session()
 with st.sidebar:
     st.markdown("## ⚡ QA-Swarm")
     st.markdown(
-        '<span class="badge badge-meta">Meta AI: SAM 3 + Muse Spark/Code</span>',
+        '<span class="badge badge-meta">META AI: SAM 3.1 + MUSE SPARK 1.3</span>',
         unsafe_allow_html=True,
     )
     st.caption("Autonomous Multimodal QA & Healing Engine")
@@ -577,83 +577,20 @@ with col_metric4:
         delta="Swarm Completed",
         delta_color="off",
     )
-    st.markdown('<div style="margin-top: 6px;"><span class="badge badge-meta badge-pill">SAM 3 + Muse</span></div>', unsafe_allow_html=True)
+    st.markdown('<div style="margin-top: 6px;"><span class="badge badge-meta badge-pill">SAM 3.1 + Muse Spark 1.3</span></div>', unsafe_allow_html=True)
 
 # Agentic MCP Execution Trace for Hackathon Jury & Production Debugging
 with st.expander("🧠 View Agentic MCP Execution Trace", expanded=False):
-    trace_data = {
-        "execution_session": "sess_meta_ai_swarm_001",
-        "orchestrator": "QA-Swarm Multimodal Executive",
-        "total_latency": st.session_state.execution_time,
-        "mcp_tool_invocations": [
-            {
-                "tool_id": "call_sam3_spatial_01",
-                "tool_name": "sam_spatial_scanner",
-                "model": "sam-3.1",
-                "latency_ms": 620,
-                "status": "SUCCESS",
-                "inputs": {
-                    "prompt_target": "overflow button",
-                    "image_target": Path(st.session_state.image_path or "sample_ui.png").name,
-                    "resolution": "1280x800",
-                },
-                "outputs": {
-                    "tokens_detected": 1,
-                    "raw_box_token": "<|box;x1=150;y1=420;x2=310;y2=480;w=800;h=600|>",
-                    "normalized_bbox": report.defects[0].bbox if report.defects else [420.0, 150.0, 480.0, 310.0],
-                    "severity": "CRITICAL",
-                },
-            },
-            {
-                "tool_id": "call_muse_spark_02",
-                "tool_name": "muse_spark_causal_correlator",
-                "model": "muse-spark-1.3",
-                "latency_ms": 890,
-                "status": "SUCCESS",
-                "inputs": {
-                    "source_file": st.session_state.code_filename,
-                    "bbox_reference": report.defects[0].bbox if report.defects else [420.0, 150.0, 480.0, 310.0],
-                    "schema_target": "RootCauseLink & CodePatch (Pydantic v2)",
-                },
-                "outputs": {
-                    "target_line": report.root_causes[0].target_line if report.root_causes else 18,
-                    "offending_token": report.root_causes[0].offending_token if report.root_causes else "width: 120px",
-                    "patch_action": "REPLACE_RIGID_CONSTRAINT",
-                    "patch_diff": "- width: 120px;\n+ width: 100%;",
-                },
-            },
-            {
-                "tool_id": "call_chaos_stress_03",
-                "tool_name": "chaos_stress_engine",
-                "latency_ms": 310,
-                "status": "SUCCESS",
-                "inputs": {
-                    "vectors_injected": 5,
-                    "categories": ["BUFFER_OVERFLOW", "RTL_UNICODE", "TYPE_MUTATION", "SYNTAX_BREAKOUT", "STORM"],
-                },
-                "outputs": {
-                    "resilience_score": 20,
-                    "status": "VULNERABILITIES_FLAGGED",
-                },
-            },
-            {
-                "tool_id": "call_sarif_exporter_04",
-                "tool_name": "sarif_gate_exporter",
-                "latency_ms": 110,
-                "status": "SUCCESS",
-                "inputs": {
-                    "schema_version": "OASIS SARIF v2.1.0",
-                    "health_score": report.health_score,
-                },
-                "outputs": {
-                    "verdict": report.verdict,
-                    "sarif_file": "test_samples/qa_audit.sarif",
-                    "codeql_upload_ready": True,
-                },
-            },
-        ],
-    }
-    st.json(trace_data)
+    if hasattr(report, "mcp_trace") and report.mcp_trace:
+        trace_data = {
+            "execution_session": "sess_meta_ai_swarm_001",
+            "orchestrator": "QA-Swarm Multimodal Executive (Meta AI)",
+            "total_latency": st.session_state.execution_time,
+            "mcp_trace": [t.model_dump() for t in report.mcp_trace],
+        }
+        st.json(trace_data)
+    else:
+        st.info("No active MCP trace recorded in current audit.")
 
 st.markdown("<br>", unsafe_allow_html=True)
 

@@ -33,6 +33,7 @@ def test_app_syntax_and_dependencies():
 
     # Verify key tokens and integration points exist
     assert "st.set_page_config" in code
+    assert "META AI: SAM 3.1 + MUSE SPARK 1.3" in code
     assert "Multimodal Spatial Cortex - SAM 3" in code
     assert "Root-Cause Linking & Auto-Fixer - Muse Code" in code
     assert "Chaos Engine Suite" in code
@@ -82,6 +83,9 @@ def test_orchestrator_ui_integration():
     assert len(report.patches) >= 1
     # Check bottom panel tabs (chaos suite)
     assert len(report.chaos_suite) == 5
+    # Check agentic MCP trace
+    assert len(report.mcp_trace) == 4
+    assert report.mcp_trace[0].tool_name == "sam_spatial_scanner"
 
 
 def test_streamlit_caching_and_session_state_persistence():

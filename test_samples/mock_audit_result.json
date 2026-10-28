@@ -56,5 +56,39 @@
       "stress_vector": "LOCALIZATION_RTL_FLIP",
       "expected_behavior": "Layout mirrors right-to-left without overlapping neighboring badges"
     }
+  ],
+  "mcp_trace": [
+    {
+      "step": 1,
+      "tool_name": "sam_spatial_scanner",
+      "model_used": "sam-3.1",
+      "status": "SUCCESS",
+      "latency_ms": 620,
+      "summary": "Detected 1 critical layout overflow anomaly and normalized coordinates"
+    },
+    {
+      "step": 2,
+      "tool_name": "muse_spark_causal_correlator",
+      "model_used": "muse-spark-1.3",
+      "status": "SUCCESS",
+      "latency_ms": 890,
+      "summary": "Correlated visual defect to line 18 ('width: 120px') and generated fluid patch"
+    },
+    {
+      "step": 3,
+      "tool_name": "chaos_stress_engine",
+      "model_used": "chaos-engine",
+      "status": "SUCCESS",
+      "latency_ms": 310,
+      "summary": "Injected 5 adversarial vectors; evaluated code resilience at 20/100"
+    },
+    {
+      "step": 4,
+      "tool_name": "sarif_gate_exporter",
+      "model_used": "sarif-v2.1.0",
+      "status": "SUCCESS",
+      "latency_ms": 110,
+      "summary": "Synthesized OASIS SARIF v2.1.0 report with verdict BLOCK_DEPLOYMENT"
+    }
   ]
 }

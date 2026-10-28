@@ -82,6 +82,12 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
         description="QA-Swarm CLI: Autonomous Multimodal QA & CI/CD Gate Engine"
     )
     parser.add_argument(
+        "--url",
+        type=str,
+        default=None,
+        help="Target live web URL to capture and audit via Playwright headless Chromium",
+    )
+    parser.add_argument(
         "--ui",
         type=str,
         default="test_samples/sample_ui.png",
@@ -126,9 +132,17 @@ def main(argv: Optional[List[str]] = None) -> None:
     """Executes the QA-Swarm CLI runner and enforces CI/CD deployment exit gates."""
     args = parse_args(argv)
 
+    # Resolve target UI screenshot: if --url provided, capture live page via Playwright
+    if args.url:
+        from core.browser import capture_url_screenshot
+        print(f"[QA-Swarm CLI] Capturing live URL with Playwright Chromium: {args.url}")
+        target_ui = capture_url_screenshot(args.url, output_path="test_samples/live_capture.png")
+    else:
+        target_ui = args.ui
+
     # Run complete audit pipeline
     report = run_full_audit(
-        image_path=args.ui,
+        image_path=target_ui,
         code_path_or_str=args.code,
         mock=args.mock,
     )
