@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1280, initial-scale=1.0">
+  <title>Enterprise Cloud Billing | Meta AI Compute Cluster</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #0b0f17;
+      --bg-surface: #111827;
+      --bg-card: rgba(17, 24, 39, 0.9);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-focus: #3b82f6;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --text-dim: #6b7280;
+      --brand-gradient: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+      --emerald: #10b981;
+      --rose: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      width: 1280px;
+      height: 800px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.1) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(99, 102, 241, 0.1) 0%, transparent 40%);
+    }
+
+    /* Top Navigation Header */
+    header {
+      height: 64px;
+      border-bottom: 1px solid var(--border-subtle);
+      background: rgba(11, 15, 23, 0.85);
+      backdrop-filter: blur(12px);
+      padding: 0 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 32px;
+      height: 32px;
+      background: var(--brand-gradient);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 16px;
+      color: #fff;
+    }
+
+    .brand-title {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: #fff;
+    }
+
+    .header-badges {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .badge-env {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 500;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      background-color: #34d399;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #34d399;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #374151;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      color: #e5e7eb;
+      font-size: 11px;
+    }
+
+    /* Main Container (2 Columns) */
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 520px 600px;
+      gap: 40px;
+      padding: 32px 60px;
+      align-items: start;
+      max-width: 1280px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    /* Column 1 (Left): Checkout Form */
+    .checkout-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 28px 36px 36px 36px;
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+      position: relative;
+    }
+
+    .card-header {
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+
+    .card-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 500;
+      color: #d1d5db;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .form-input {
+      width: 100%;
+      background: rgba(17, 24, 39, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+      color: #ffffff;
+      font-family: 'JetBrains Mono', monospace;
+      outline: none;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    /* Calibrated Button Positioning & Defective Width */
+    .button-container {
+      margin-top: 18px;
+      position: relative;
+      width: 100%;
+      height: 60px;
+    }
+
+    /*
+      SURGICAL DEFECT REGION (Line 18 of broken_component.py):
+      width: 120px with white-space: nowrap forces visual layout overflow
+      Calibrated to exact bbox [420.0, 150.0, 480.0, 310.0] in 1280x800
+    */
+    .checkout-submit-btn {
+      position: absolute;
+      top: -42px;
+      left: 53px;
+      width: 120px; /* <--- DEFECTIVE CONSTRAINT: Line 18 */
+      height: 60px;
+      white-space: nowrap;
+      overflow: visible;
+      background: var(--brand-gradient);
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 0 14px;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+      outline: 2px solid rgba(239, 68, 68, 0.85); /* Visual bounding box marker */
+      z-index: 10;
+    }
+
+    .disclaimer {
+      margin-top: 16px;
+      font-size: 11px;
+      color: var(--text-dim);
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    /* Column 2 (Right): Order Summary */
+    .summary-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+    }
+
+    .tier-eyebrow {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #60a5fa;
+      margin-bottom: 8px;
+    }
+
+    .tier-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 12px;
+      letter-spacing: -0.02em;
+    }
+
+    .tier-description {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+
+    .pricing-display {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 20px;
+    }
+
+    .price-amount {
+      font-size: 38px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.03em;
+    }
+
+    .price-period {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .features-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 26px;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: #e5e7eb;
+    }
+
+    .check-icon {
+      width: 18px;
+      height: 18px;
+      background: rgba(16, 185, 129, 0.15);
+      color: #10b981;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .security-badges {
+      display: flex;
+      gap: 16px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .sec-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-logo">⚡</div>
+      <div class="brand-title">Enterprise Cloud Billing</div>
+    </div>
+    <div class="header-badges">
+      <div class="badge-env">
+        <span class="pulse-dot"></span>
+        PRODUCTION ENVIRONMENT
+      </div>
+      <div class="user-profile">
+        <div class="avatar">DA</div>
+        <span>devops-admin@enterprise.ai</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main>
+    <!-- Left Column: Checkout Payment Form -->
+    <section class="checkout-card">
+      <div class="card-header">
+        <h2 class="card-title">Payment Details</h2>
+        <p class="card-subtitle">Complete your transaction with instant cluster provisioning.</p>
+      </div>
+
+      <form onsubmit="event.preventDefault();">
+        <div class="form-group">
+          <label class="form-label">Cardholder Name</label>
+          <div class="input-wrapper">
+            <input type="text" class="form-input" value="Meta QA Lead" readonly>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Card Number</label>
+          <div class="input-wrapper">
+            <input type="text" class="form-input" value="4242 •••• •••• 4242" readonly>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Expiration Date</label>
+            <div class="input-wrapper">
+              <input type="text" class="form-input" value="12 / 28" readonly>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Security Code (CVC)</label>
+            <div class="input-wrapper">
+              <input type="text" class="form-input" value="888" readonly>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Billing Address</label>
+          <div class="input-wrapper">
+            <input type="text" class="form-input" value="1 Hacker Way, Menlo Park, CA" readonly>
+          </div>
+        </div>
+
+        <!-- BUG TRIGGER REGION: Overflow Button matching line 18 in broken_component.py -->
+        <div class="button-container">
+          <button id="btn_purchase" class="checkout-submit-btn" style="width: 120px; white-space: nowrap; overflow: visible;">
+            Proceed to Instant Checkout ($499.00)
+          </button>
+        </div>
+
+        <p class="disclaimer">
+          By clicking checkout, you authorize automatic renewal charges of $499.00/mo. Terms of Service & Privacy Policy apply.
+        </p>
+      </form>
+    </section>
+
+    <!-- Right Column: Order Summary -->
+    <section class="summary-card">
+      <div class="tier-eyebrow">COMPUTE CLUSTER SUBSCRIPTION</div>
+      <h1 class="tier-title">Meta AI Compute Pro Tier</h1>
+      <p class="tier-description">Dedicated high-throughput GPU cluster nodes for continuous multimodal spatial vision and code remediation pipelines.</p>
+
+      <div class="pricing-display">
+        <span class="price-amount">$499.00</span>
+        <span class="price-period">/ month (billed annually)</span>
+      </div>
+
+      <ul class="features-list">
+        <li class="feature-item">
+          <span class="check-icon">✓</span>
+          <span>Unlimited SAM 3.1 Sub-pixel Spatial Bounding Box Reasoning</span>
+        </li>
+        <li class="feature-item">
+          <span class="check-icon">✓</span>
+          <span>Muse Spark 1.3 Causal AST Pixel-to-Code Auto-Healer</span>
+        </li>
+        <li class="feature-item">
+          <span class="check-icon">✓</span>
+          <span>5-Vector Adversarial Chaos Stress Injection Suite</span>
+        </li>
+        <li class="feature-item">
+          <span class="check-icon">✓</span>
+          <span>Continuous OASIS SARIF v2.1.0 CI/CD Deployment Gate</span>
+        </li>
+      </ul>
+
+      <div class="security-badges">
+        <div class="sec-badge">🔒 256-Bit SSL Encrypted</div>
+        <div class="sec-badge">🛡️ PCI-DSS Level 1 Compliant</div>
+      </div>
+    </section>
+  </main>
+
+</body>
+</html>

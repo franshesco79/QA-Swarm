@@ -331,7 +331,11 @@ with st.sidebar:
             st.session_state.code_filename = "broken_component.py"
             st.session_state.audit_report = None
             st.session_state.healed_code = None
-            st.success("✅ Demo sample loaded: E-Commerce button with 120px layout overflow!")
+            st.success("✅ Demo sample loaded: SaaS Checkout button with 120px layout overflow!")
+
+        if st.button("⚡ Execute Full Swarm Audit", type="primary", use_container_width=True):
+            if trigger_audit(mock_mode):
+                st.rerun()
 
         st.markdown("##### Custom File Upload")
         uploaded_img = st.file_uploader("Upload UI Screenshot", type=["png", "jpg", "jpeg"])
@@ -358,8 +362,8 @@ with st.sidebar:
         st.markdown("##### Playwright Live Capture")
         live_url = st.text_input(
             "Live Web Target",
-            value="http://localhost:3000",
-            placeholder="http://localhost:3000 o https://example.com",
+            value="http://localhost:8090/broken_checkout.html",
+            placeholder="http://localhost:8090/broken_checkout.html o https://example.com",
             help="Automated Playwright Chromium viewport capture (1280x800).",
         )
         if st.button("🌐 Capturar y Analizar con Playwright", type="primary", use_container_width=True):

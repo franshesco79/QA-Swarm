@@ -1,27 +1,31 @@
 """
-Broken UI component simulation for QA-Swarm Phase 3 testing.
-Contains a rigid width constraint causing visual layout overflow,
-and an unhandled exception in payment processing logic.
+SaaS Billing Component for Meta AI Compute Cluster Pro Tier.
+Rendered within high-converting Stripe-style checkout portal.
 """
 
 from typing import Any, Dict
 
 
-class PurchaseComponent:
+class SaaSCheckoutComponent:
     """
-    Component rendering shopping cart purchase action.
+    Production SaaS Checkout Component for Enterprise Cloud Billing.
     """
 
-    def __init__(self, item_id: str, label: str = "Checkout Now"):
-        self.item_id = item_id
+    def __init__(self, plan_id: str = "cluster_pro_499", label: str = "Proceed to Instant Checkout ($499.00)"):
+        self.plan_id = plan_id
         self.label = label
+        # Buggy CSS constraint for primary button .checkout-submit-btn
         self.style_rules = "width: 120px;"  # Line 18: Rigid width constraint
 
     def render(self) -> str:
-        return f'<button id="btn_purchase" style="{self.style_rules}">{self.label}</button>'
+        return f'<button id="btn_purchase" class="checkout-submit-btn" style="{self.style_rules}">{self.label}</button>'
 
     def process_order(self, order_data: Dict[str, Any]) -> float:
         # Logical flaw: No error/exception handling for missing payload keys
         amount = order_data["payment"]["total"]
         currency_multiplier = order_data["rates"]["USD"]
         return float(amount) * float(currency_multiplier)
+
+
+# Backward compatibility alias
+PurchaseComponent = SaaSCheckoutComponent

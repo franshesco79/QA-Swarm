@@ -1,5 +1,5 @@
 {
-  "health_score": 42,
+  "health_score": 56,
   "verdict": "BLOCK_DEPLOYMENT",
   "defects": [
     {
@@ -11,7 +11,7 @@
   ],
   "root_causes": [
     {
-      "target_file": "component.py",
+      "target_file": "broken_component.py",
       "target_line": 18,
       "offending_token": "width: 120px",
       "explanation": "Fixed width constraint 'width: 120px' forces text overflow when action label exceeds fixed pixel boundary."
@@ -19,10 +19,10 @@
   ],
   "patches": [
     {
-      "target_file": "component.py",
+      "target_file": "broken_component.py",
       "target_line": 18,
       "original_snippet": "width: 120px;",
-      "replacement_snippet": "width: 100%;"
+      "replacement_snippet": "width: 100%; min-width: max-content; padding: 12px 20px;"
     }
   ],
   "chaos_suite": [
@@ -40,21 +40,21 @@
     },
     {
       "test_id": "CHAOS-003",
-      "input_payload": "network_latency_ms=4500",
-      "stress_vector": "HIGH_LATENCY_JITTER",
-      "expected_behavior": "Button displays loading spinner and disables concurrent click events"
-    },
-    {
-      "test_id": "CHAOS-004",
-      "input_payload": "rapid_clicks=20_in_100ms",
-      "stress_vector": "DEBOUNCE_STRESS",
-      "expected_behavior": "Single mutation dispatched, idempotency token respected"
-    },
-    {
-      "test_id": "CHAOS-005",
       "input_payload": "rtl_locale=ar_SA",
       "stress_vector": "LOCALIZATION_RTL_FLIP",
       "expected_behavior": "Layout mirrors right-to-left without overlapping neighboring badges"
+    },
+    {
+      "test_id": "CHAOS-004",
+      "input_payload": "type_mutation_boundary_float_none",
+      "stress_vector": "BOUNDARY_TYPE_MUTATION",
+      "expected_behavior": "Deterministic type coercion and fallback to default button dimensions"
+    },
+    {
+      "test_id": "CHAOS-005",
+      "input_payload": "concurrent_click_events_50_in_10ms",
+      "stress_vector": "CONCURRENCY_EVENT_STORM",
+      "expected_behavior": "Debounced single event emission with active idempotency guard"
     }
   ],
   "mcp_trace": [
@@ -80,7 +80,7 @@
       "model_used": "chaos-engine",
       "status": "SUCCESS",
       "latency_ms": 310,
-      "summary": "Injected 5 adversarial vectors; evaluated code resilience at 20/100"
+      "summary": "Injected 5 adversarial vectors; evaluated code resilience at 35/100"
     },
     {
       "step": 4,

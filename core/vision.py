@@ -184,8 +184,8 @@ def inspect_ui_elements(image_path: str, mock: bool = True) -> List[VisualDefect
     raw_defects = data.get("defects", [])
     validated_defects: List[VisualDefect] = []
 
-    # Standard reference resolution of mock dataset is 800x600
-    ref_width, ref_height = 800.0, 600.0
+    # Standard reference resolution of mock dataset is 1280x800 desktop viewport
+    ref_width, ref_height = 1280.0, 800.0
     scale_x = img_width / ref_width
     scale_y = img_height / ref_height
 
@@ -193,8 +193,8 @@ def inspect_ui_elements(image_path: str, mock: bool = True) -> List[VisualDefect
         original_bbox = item.get("bbox", [0.0, 0.0, 0.0, 0.0])
         ymin, xmin, ymax, xmax = original_bbox
 
-        # If image matches reference, keep exact bbox; otherwise scale proportionally
-        if (img_width, img_height) == (800, 600):
+        # If image matches reference (1280x800 or legacy 800x600), keep exact bbox; otherwise scale proportionally
+        if (img_width, img_height) in ((1280, 800), (800, 600)):
             scaled_bbox = [float(ymin), float(xmin), float(ymax), float(xmax)]
         else:
             scaled_bbox = [
