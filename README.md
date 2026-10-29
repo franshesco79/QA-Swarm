@@ -28,39 +28,55 @@ Traditional visual regression tools capture pixel differences without understand
 The following diagram illustrates the closed-loop autonomous pipeline from dual ingestion through Meta AI multimodal reasoning to automated code healing and CI/CD gate validation:
 
 ```mermaid
-flowchart LR
-    subgraph INGESTION["1. Dual Ingestion Engine"]
-        LOCAL["CI/CD Local Artifacts<br/>(sample_ui.png + code)"]
-        LIVE["Playwright Live Browser<br/>(Chromium 1280x800)"]
+flowchart TD
+    %% Global Palette & Styles
+    classDef ingestion fill:#0f172a,stroke:#3b82f6,stroke-width:2px,color:#f8fafc;
+    classDef cortex fill:#1e1b4b,stroke:#8b5cf6,stroke-width:2px,color:#f8fafc;
+    classDef healer fill:#0f172a,stroke:#6366f1,stroke-width:2px,color:#f8fafc;
+    classDef chaos fill:#2a0845,stroke:#ec4899,stroke-width:2px,color:#f8fafc;
+    classDef delivery fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#f8fafc;
+
+    subgraph S1["STAGE 1: DUAL INGESTION ENGINE"]
+        LOCAL["📁 <b>CI/CD Local Artifacts</b><br/><code>sample_ui.png</code> + <code>broken_component.py</code>"]
+        LIVE["🌐 <b>Playwright Live Browser</b><br/>Headless Chromium • Viewport 1280x800"]
     end
 
-    subgraph VISION["2. Multimodal Spatial Cortex"]
-        SAM3["Meta SAM 3.1<br/>(Sub-pixel BBox Localization)"]
+    subgraph S2["STAGE 2: MULTIMODAL SPATIAL CORTEX (META AI)"]
+        SAM3["🧠 <b>Meta SAM 3.1 (<code>model: 'sam-3.1'</code>)</b><br/>Sub-pixel Layout Segmentation & Anomaly Bounding Box Localization<br/>Regex Token Extraction: <code>&lt;|box;x1=...;y1=...;w=...;h=...|&gt;</code> ➔ <code>[ymin, xmin, ymax, xmax]</code>"]
     end
 
-    subgraph CORRELATION["3. Agentic MCP Orchestrator"]
-        MUSE["Muse Spark 1.3<br/>(Pixel-to-AST Causal Fixer)"]
-        MCP["Agentic MCP Tool Suite<br/>(sam_spatial, playwright, chaos, sarif)"]
+    subgraph S3["STAGE 3: AGENTIC MCP ORCHESTRATOR & CAUSAL FIXER"]
+        MUSE["✨ <b>Meta Muse Spark 1.3 (<code>model: 'muse-spark-1.3'</code>)</b><br/>Pixel-to-AST Multimodal Correlation & Offending Token Identification<br/>Pydantic-Validated Deterministic Patch Synthesis (<code>difflib</code> Unified Diff)"]
+        MCP["🛠️ <b>Agentic Model Context Protocol (MCP) Tools</b><br/>• <code>sam_spatial_scanner</code> (Spatial Anomaly Localization)<br/>• <code>muse_spark_correlator</code> (AST Root Cause Mapping)<br/>• <code>chaos_stress_engine</code> (Defensive Stress Injection)<br/>• <code>sarif_gate_exporter</code> (OASIS SARIF v2.1.0 Gate)"]
     end
 
-    subgraph RESILIENCE["4. Adversarial Stress Suite"]
-        CHAOS["Adversarial Chaos Engine<br/>(5 Stress Vectors / 0-100 Score)"]
+    subgraph S4["STAGE 4: ADVERSARIAL CHAOS RESILIENCE ENGINE"]
+        CHAOS["🔥 <b>Chaos Stress Suite (5 Adversarial Vectors)</b><br/>Buffer Overflow • RTL Flip • Concurrency Storm • Boundary Mutation • Syntax Breakout<br/>Resilience Metric: <b>Health Score (0 – 100)</b>"]
     end
 
-    subgraph DELIVERY["5. Autonomous Governance & Gate"]
-        HEAL["Auto-Healed Source Code<br/>(Pydantic-Validated Diff)"]
-        SARIF["OASIS SARIF v2.1.0 Report<br/>(GitHub CodeQL Action)"]
+    subgraph S5["STAGE 5: AUTONOMOUS CI/CD GOVERNANCE & GITHUB GATE"]
+        HEAL["🩹 <b>Auto-Healed Source Code</b><br/>Verified Zero-Downtime Patch (e.g. <code>width: 120px</code> ➔ <code>width: 100%</code>)<br/>Interactive One-Click Workspace Healer"]
+        SARIF["🛡️ <b>OASIS SARIF v2.1.0 Telemetry</b><br/>Native GitHub Code Scanning / CodeQL Gate Integration<br/>Automated Verdict: <code>ALLOW_DEPLOYMENT</code> or <code>BLOCK_DEPLOYMENT</code>"]
     end
 
-    LOCAL -->|"Image + Code"| SAM3
-    LIVE -->|"Automated Screenshot"| SAM3
-    SAM3 -->|"Normalized BBoxes [ymin, xmin, ymax, xmax]"| MUSE
-    MUSE <-->|"Tool Calling (MCP)"| MCP
+    %% Closed-Loop Signal Flow
+    LOCAL -->|"Image + Source Code"| SAM3
+    LIVE -->|"Live Screenshot Capture"| SAM3
+    SAM3 -->|"Normalized Bounding Boxes"| MUSE
+    MUSE <-->|"Bidirectional Tool Calling"| MCP
     MUSE -->|"Deterministic CodePatch"| HEAL
     MUSE -->|"Offending Token Reference"| CHAOS
-    CHAOS -->|"Resilience Metric"| SARIF
-    HEAL -.->|"Regression Loop"| LIVE
-    SARIF -.->|"CI/CD Gate"| LOCAL
+    CHAOS -->|"Resilience Health Score"| SARIF
+
+    %% Autonomous Feedback Loops (Closed-Loop)
+    HEAL -.->|"Automated Regression Test Loop"| LIVE
+    SARIF -.->|"Automated Gate Enforcement"| LOCAL
+
+    class LOCAL,LIVE ingestion;
+    class SAM3 cortex;
+    class MUSE,MCP healer;
+    class CHAOS chaos;
+    class HEAL,SARIF delivery;
 ```
 
 ---
