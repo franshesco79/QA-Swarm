@@ -216,6 +216,7 @@ class QASwarmClient:
         self,
         env_file: Optional[Path | str] = None,
         mock_file_path: Optional[Path | str] = None,
+        use_mock: Optional[bool] = None,
     ) -> None:
         if env_file:
             load_dotenv(dotenv_path=env_file)
@@ -224,8 +225,11 @@ class QASwarmClient:
 
         self.meta_api_key: Optional[str] = os.getenv("META_API_KEY", "").strip() or None
         self.fireworks_api_key: Optional[str] = os.getenv("FIREWORKS_API_KEY", "").strip() or None
-        raw_mock = os.getenv("USE_MOCK", "true").strip().lower()
-        self.use_mock: bool = raw_mock in ("true", "1", "yes", "t")
+        if use_mock is not None:
+            self.use_mock: bool = bool(use_mock)
+        else:
+            raw_mock = os.getenv("USE_MOCK", "true").strip().lower()
+            self.use_mock = raw_mock in ("true", "1", "yes", "t")
 
         # Resolve path to test_samples/mock_audit_result.json
         if mock_file_path:

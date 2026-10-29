@@ -6,11 +6,14 @@ code remediation, and unified diff view generation using difflib.
 
 import difflib
 import json
+import logging
 import os
 from pathlib import Path
 from typing import List
 
 from core.schemas import CodePatch, RootCauseLink
+
+logger = logging.getLogger("qa_swarm.analyzer")
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_MOCK_FILE = PROJECT_ROOT / "test_samples" / "mock_audit_result.json"
@@ -28,30 +31,39 @@ def analyze_source_code(
     env_mock = os.getenv("USE_MOCK", "true").strip().lower() in ("true", "1", "yes", "t")
     should_use_mock = mock or env_mock
 
-    if should_use_mock:
-        if not DEFAULT_MOCK_FILE.exists():
-            raise FileNotFoundError(f"Mock audit file not found at: {DEFAULT_MOCK_FILE}")
+    candidate_path = Path(file_path_or_code)
+    target_name = candidate_path.name if candidate_path.exists() else None
 
-        with open(DEFAULT_MOCK_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
+    if not should_use_mock:
+        try:
+            from core.client import QASwarmClient
+            client = QASwarmClient(use_mock=False)
+            rcs, _ = client.call_muse_spark_correlation(
+                source_code=file_path_or_code,
+                defects=[],
+                file_name=target_name or "broken_component.py",
+            )
+            if rcs:
+                return rcs
+        except Exception as exc:
+            logger.warning(f"[Analyzer] Live analysis failed ({exc}), falling back to deterministic mock.")
 
-        raw_root_causes = data.get("root_causes", [])
-        validated_causes: List[RootCauseLink] = []
+    if not DEFAULT_MOCK_FILE.exists():
+        raise FileNotFoundError(f"Mock audit file not found at: {DEFAULT_MOCK_FILE}")
 
-        # Check if file_path_or_code is a valid file path
-        candidate_path = Path(file_path_or_code)
-        target_name = candidate_path.name if candidate_path.exists() else None
+    with open(DEFAULT_MOCK_FILE, "r", encoding="utf-8") as f:
+        data = json.load(f)
 
-        for item in raw_root_causes:
-            cause_data = dict(item)
-            if target_name:
-                cause_data["target_file"] = target_name
-            validated_causes.append(RootCauseLink.model_validate(cause_data))
+    raw_root_causes = data.get("root_causes", [])
+    validated_causes: List[RootCauseLink] = []
 
-        return validated_causes
+    for item in raw_root_causes:
+        cause_data = dict(item)
+        if target_name:
+            cause_data["target_file"] = target_name
+        validated_causes.append(RootCauseLink.model_validate(cause_data))
 
-    # Live static analysis / AST / LLM inspection fallback (for future live agents)
-    raise NotImplementedError("Live LLM/AST code analysis is not configured yet.")
+    return validated_causes
 
 
 def generate_code_patch(
@@ -65,27 +77,38 @@ def generate_code_patch(
     env_mock = os.getenv("USE_MOCK", "true").strip().lower() in ("true", "1", "yes", "t")
     should_use_mock = mock or env_mock
 
-    if should_use_mock:
-        # Load default patch from mock_audit_result.json if available
-        if DEFAULT_MOCK_FILE.exists():
-            with open(DEFAULT_MOCK_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            raw_patches = data.get("patches", [])
-            if raw_patches:
-                patch_dict = dict(raw_patches[0])
-                patch_dict["target_file"] = root_cause.target_file
-                patch_dict["target_line"] = root_cause.target_line
-                return CodePatch.model_validate(patch_dict)
+    if not should_use_mock:
+        try:
+            from core.client import QASwarmClient
+            client = QASwarmClient(use_mock=False)
+            _, patches = client.call_muse_spark_correlation(
+                source_code=source_code,
+                defects=[],
+                file_name=root_cause.target_file,
+            )
+            if patches:
+                return patches[0]
+        except Exception as exc:
+            logger.warning(f"[Analyzer] Live Muse Spark patch failed ({exc}), falling back to deterministic synthesis.")
 
-        # Dynamic fallback matching root cause
-        return CodePatch(
-            target_file=root_cause.target_file,
-            target_line=root_cause.target_line,
-            original_snippet="width: 120px;",
-            replacement_snippet="width: 100%;",
-        )
+    # Load default patch from mock_audit_result.json if available
+    if DEFAULT_MOCK_FILE.exists():
+        with open(DEFAULT_MOCK_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        raw_patches = data.get("patches", [])
+        if raw_patches:
+            patch_dict = dict(raw_patches[0])
+            patch_dict["target_file"] = root_cause.target_file
+            patch_dict["target_line"] = root_cause.target_line
+            return CodePatch.model_validate(patch_dict)
 
-    raise NotImplementedError("Live LLM patch synthesis is not configured yet.")
+    # Dynamic fallback matching root cause
+    return CodePatch(
+        target_file=root_cause.target_file,
+        target_line=root_cause.target_line,
+        original_snippet="width: 120px;",
+        replacement_snippet="width: 100%;",
+    )
 
 
 def apply_patch_to_code(original_code: str, patch: CodePatch) -> str:

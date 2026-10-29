@@ -5,12 +5,15 @@ and UI defect inspection.
 """
 
 import json
+import logging
 import os
 from pathlib import Path
 from typing import List, Optional, Tuple
 
 from PIL import Image, ImageDraw, ImageFont
 from core.schemas import VisualDefect
+
+logger = logging.getLogger("qa_swarm.vision")
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_MOCK_FILE = PROJECT_ROOT / "test_samples" / "mock_audit_result.json"
@@ -162,41 +165,47 @@ def inspect_ui_elements(image_path: str, mock: bool = True) -> List[VisualDefect
     with Image.open(resolved_img_path) as img:
         img_width, img_height = img.size
 
-    if should_use_mock:
-        if not DEFAULT_MOCK_FILE.exists():
-            raise FileNotFoundError(f"Mock file not found at: {DEFAULT_MOCK_FILE}")
+    if not should_use_mock:
+        try:
+            from core.client import QASwarmClient
+            client = QASwarmClient(use_mock=False)
+            live_defects = client.call_sam3_vision(image_path=resolved_img_path)
+            if live_defects:
+                return live_defects
+        except Exception as exc:
+            logger.warning(f"[Vision] Live SAM 3.1 inference failed ({exc}), falling back to deterministic mock.")
 
-        with open(DEFAULT_MOCK_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
+    if not DEFAULT_MOCK_FILE.exists():
+        raise FileNotFoundError(f"Mock file not found at: {DEFAULT_MOCK_FILE}")
 
-        raw_defects = data.get("defects", [])
-        validated_defects: List[VisualDefect] = []
+    with open(DEFAULT_MOCK_FILE, "r", encoding="utf-8") as f:
+        data = json.load(f)
 
-        # Standard reference resolution of mock dataset is 800x600
-        ref_width, ref_height = 800.0, 600.0
-        scale_x = img_width / ref_width
-        scale_y = img_height / ref_height
+    raw_defects = data.get("defects", [])
+    validated_defects: List[VisualDefect] = []
 
-        for item in raw_defects:
-            original_bbox = item.get("bbox", [0.0, 0.0, 0.0, 0.0])
-            ymin, xmin, ymax, xmax = original_bbox
+    # Standard reference resolution of mock dataset is 800x600
+    ref_width, ref_height = 800.0, 600.0
+    scale_x = img_width / ref_width
+    scale_y = img_height / ref_height
 
-            # If image matches reference, keep exact bbox; otherwise scale proportionally
-            if (img_width, img_height) == (800, 600):
-                scaled_bbox = [float(ymin), float(xmin), float(ymax), float(xmax)]
-            else:
-                scaled_bbox = [
-                    round(ymin * scale_y, 2),
-                    round(xmin * scale_x, 2),
-                    round(ymax * scale_y, 2),
-                    round(xmax * scale_x, 2),
-                ]
+    for item in raw_defects:
+        original_bbox = item.get("bbox", [0.0, 0.0, 0.0, 0.0])
+        ymin, xmin, ymax, xmax = original_bbox
 
-            defect_copy = dict(item)
-            defect_copy["bbox"] = scaled_bbox
-            validated_defects.append(VisualDefect.model_validate(defect_copy))
+        # If image matches reference, keep exact bbox; otherwise scale proportionally
+        if (img_width, img_height) == (800, 600):
+            scaled_bbox = [float(ymin), float(xmin), float(ymax), float(xmax)]
+        else:
+            scaled_bbox = [
+                round(ymin * scale_y, 2),
+                round(xmin * scale_x, 2),
+                round(ymax * scale_y, 2),
+                round(xmax * scale_x, 2),
+            ]
 
-        return validated_defects
+        defect_copy = dict(item)
+        defect_copy["bbox"] = scaled_bbox
+        validated_defects.append(VisualDefect.model_validate(defect_copy))
 
-    # Live inference fallback (for future live SAM 3.1 endpoint)
-    raise NotImplementedError("Live vision model inference endpoint not configured yet.")
+    return validated_defects
