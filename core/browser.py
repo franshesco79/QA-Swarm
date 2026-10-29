@@ -1,7 +1,7 @@
 """
 Playwright Live Browser Capture Module for QA-Swarm.
 Provides automated headless screenshot capture of live web applications
-with standard 1280x800 desktop viewport, graceful cloud fallback for Hugging Face Spaces,
+with standard 1280x800 desktop viewport, graceful fallback for CI/CD container environments,
 and resilient timeout/error handling.
 """
 
