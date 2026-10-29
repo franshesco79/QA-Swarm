@@ -35,7 +35,7 @@ jobs:
 
       - name: Execute Headless QA-Swarm Audit
         run: |
-          python -m core.cli --ui test_samples/sample_ui.png --code test_samples/broken_component.py --output test_samples/qa_audit.sarif --allow-blocked
+          USE_MOCK=true python -m core.cli --ui test_samples/sample_ui.png --code test_samples/broken_component.py --output test_samples/qa_audit.sarif --allow-blocked
 
       - name: Upload SARIF report to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v3

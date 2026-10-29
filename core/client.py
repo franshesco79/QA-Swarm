@@ -456,7 +456,7 @@ class QASwarmClient:
                 ),
                 MCPToolTrace(
                     step=2,
-                    tool_name="muse_spark_causal_correlator",
+                    tool_name="muse_spark_correlator",
                     model_used="muse-spark-1.3",
                     status="SUCCESS",
                     latency_ms=890,

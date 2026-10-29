@@ -234,7 +234,7 @@ def run_full_audit(
     mcp_traces.append(
         MCPToolTrace(
             step=2,
-            tool_name="muse_spark_causal_correlator",
+            tool_name="muse_spark_correlator",
             model_used="muse-spark-1.3",
             status="SUCCESS" if root_causes and patches else "FALLBACK",
             latency_ms=max(1, lat_2),

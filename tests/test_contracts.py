@@ -35,7 +35,7 @@ def test_mcp_trace_contract_and_model_references():
 
     expected_tools = [
         ("sam_spatial_scanner", "sam-3.1"),
-        ("muse_spark_causal_correlator", "muse-spark-1.3"),
+        ("muse_spark_correlator", "muse-spark-1.3"),
         ("chaos_stress_engine", "chaos-engine"),
         ("sarif_gate_exporter", "sarif-v2.1.0"),
     ]

@@ -22,6 +22,7 @@ htmlcov/
 
 # SARIF reports
 *.sarif
+test_samples/live_capture.png
 
 # Distribution / packaging
 build/
