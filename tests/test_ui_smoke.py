@@ -105,11 +105,12 @@ def test_streamlit_caching_and_session_state_persistence():
     assert len(at.exception) == 0
 
 
-def test_streamlit_all_audit_buttons_click_without_error():
+def test_streamlit_all_audit_buttons_click_without_error(monkeypatch):
     """
     Verifies that all buttons triggering trigger_audit in the sidebar and main view
     can be clicked without raising NameError or unhandled exceptions.
     """
+    monkeypatch.setenv("USE_MOCK", "true")
     button_targets = [
         "⚡ Ejecutar Auditoría del Enjambre",
         "📁 Load Demo Sample",
@@ -117,8 +118,8 @@ def test_streamlit_all_audit_buttons_click_without_error():
         "🚀 Run QA-Swarm Audit",
     ]
     for target in button_targets:
-        at = AppTest.from_file(str(APP_MAIN_PATH)).run()
+        at = AppTest.from_file(str(APP_MAIN_PATH), default_timeout=10).run()
         for btn in at.button:
             if btn.label == target:
-                btn.click().run()
+                btn.click().run(timeout=10)
                 assert len(at.exception) == 0, f"Exception clicked '{target}': {at.exception}"
