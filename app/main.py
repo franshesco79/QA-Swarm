@@ -277,6 +277,8 @@ def initialize_session() -> None:
         st.session_state.healed_code = None
     if "sarif_data" not in st.session_state:
         st.session_state.sarif_data = None
+    if "mock_mode" not in st.session_state:
+        st.session_state["mock_mode"] = os.getenv("USE_MOCK", "true").strip().lower() in ("true", "1", "yes")
 
 
 def compute_payload_hash(data: bytes | str) -> str:
@@ -303,12 +305,55 @@ def execute_cached_swarm_audit(
     )
 
 
+def trigger_audit(mock: bool | None = None) -> bool:
+    """Executes the full multimodal swarm audit and updates state with 0ms intelligent caching."""
+    if mock is None:
+        mock = st.session_state.get("mock_mode", True)
+    if not st.session_state.image_path or not Path(st.session_state.image_path).exists():
+        st.error("Please load the demo sample or upload a valid UI screenshot first.")
+        return False
+    if not st.session_state.code_content:
+        st.error("Please load the demo sample or upload component source code first.")
+        return False
+
+    start_clock = time.perf_counter()
+    with st.spinner("Coordinating Agent Swarm (SAM 3.1 Vision + Muse Spark Correlation)..."):
+        # Hash image and source code for zero-overhead intelligent caching
+        image_bytes = Path(st.session_state.image_path).read_bytes()
+        image_hash = compute_payload_hash(image_bytes)
+        code_hash = compute_payload_hash(st.session_state.code_content)
+
+        report = execute_cached_swarm_audit(
+            image_hash=image_hash,
+            code_hash=code_hash,
+            image_path=str(st.session_state.image_path),
+            code_content=st.session_state.code_content,
+            code_filename=st.session_state.code_filename,
+            use_mock=mock,
+        )
+        elapsed = time.perf_counter() - start_clock
+        st.session_state.execution_time = f"{elapsed:.2f}s"
+        st.session_state.audit_report = report
+        st.session_state["audit_result"] = report
+        if report.patches:
+            st.session_state.healed_code = apply_patch_to_code(
+                st.session_state.code_content, report.patches[0]
+            )
+        # Pre-export and cache SARIF string for 0ms download response
+        st.session_state.sarif_data = export_to_sarif(report, str(DEFAULT_SARIF_PATH))
+        st.toast("Swarm Audit Completed!", icon="⚡")
+        return True
+
+
 initialize_session()
 
 # ==============================================================================
 # SIDEBAR
 # ==============================================================================
 with st.sidebar:
+    default_mock = os.getenv("USE_MOCK", "true").strip().lower() in ("true", "1", "yes")
+    mock_mode = st.session_state.get("mock_mode", default_mock)
+
     st.markdown("## ⚡ QA-Swarm")
     st.markdown(
         '<span class="badge badge-meta">META AI: SAM 3.1 + MUSE SPARK 1.3</span>',
@@ -390,8 +435,8 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("### ⚙️ Engine Settings")
-    default_mock = os.getenv("USE_MOCK", "true").strip().lower() in ("true", "1", "yes")
-    mock_mode = st.toggle("Mock Mode (Deterministic)", value=default_mock)
+    mock_mode = st.toggle("Mock Mode (Deterministic)", value=mock_mode)
+    st.session_state["mock_mode"] = mock_mode
 
     st.markdown("---")
     run_audit_btn = st.button("🚀 Run QA-Swarm Audit", type="primary", use_container_width=True)
@@ -401,44 +446,6 @@ with st.sidebar:
 # MAIN VIEW: HEADER & AUDIT EXECUTION
 # ==============================================================================
 st.title("QA-Swarm: Autonomous Multimodal QA & Healing Engine")
-
-
-def trigger_audit(mock: bool) -> bool:
-    """Executes the full multimodal swarm audit and updates state with 0ms intelligent caching."""
-    if not st.session_state.image_path or not Path(st.session_state.image_path).exists():
-        st.error("Please load the demo sample or upload a valid UI screenshot first.")
-        return False
-    if not st.session_state.code_content:
-        st.error("Please load the demo sample or upload component source code first.")
-        return False
-
-    start_clock = time.perf_counter()
-    with st.spinner("Coordinating Agent Swarm (SAM 3.1 Vision + Muse Spark Correlation)..."):
-        # Hash image and source code for zero-overhead intelligent caching
-        image_bytes = Path(st.session_state.image_path).read_bytes()
-        image_hash = compute_payload_hash(image_bytes)
-        code_hash = compute_payload_hash(st.session_state.code_content)
-
-        report = execute_cached_swarm_audit(
-            image_hash=image_hash,
-            code_hash=code_hash,
-            image_path=str(st.session_state.image_path),
-            code_content=st.session_state.code_content,
-            code_filename=st.session_state.code_filename,
-            use_mock=mock,
-        )
-        elapsed = time.perf_counter() - start_clock
-        st.session_state.execution_time = f"{elapsed:.2f}s"
-        st.session_state.audit_report = report
-        st.session_state["audit_result"] = report
-        if report.patches:
-            st.session_state.healed_code = apply_patch_to_code(
-                st.session_state.code_content, report.patches[0]
-            )
-        # Pre-export and cache SARIF string for 0ms download response
-        st.session_state.sarif_data = export_to_sarif(report, str(DEFAULT_SARIF_PATH))
-        st.toast("Swarm Audit Completed!", icon="⚡")
-        return True
 
 
 if run_audit_btn:
