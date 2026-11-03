@@ -449,72 +449,65 @@ if run_audit_btn:
 if not st.session_state.audit_report:
     # Target context bar
     st.markdown(
-        """
-        <div class="target-context-bar">
-            <span>TARGET ARTIFACTS: <span class="target-tag">test_samples/sample_ui.png</span> &amp; <span class="target-tag">test_samples/broken_component.py</span></span>
-            <span class="status-pill">PRE-LOADED IN MEMORY</span>
-        </div>
-        """,
+        '<div class="target-context-bar">'
+        '<span>TARGET ARTIFACTS: <span class="target-tag">test_samples/sample_ui.png</span> &amp; <span class="target-tag">test_samples/broken_component.py</span></span>'
+        '<span class="status-pill">PRE-LOADED IN MEMORY</span>'
+        '</div>',
         unsafe_allow_html=True,
     )
 
     # 4 Horizontal Pipeline Cards (Linear/Datadog style)
     st.markdown(
-        """
-        <div class="pipeline-container">
-            <div class="pipeline-card">
-                <div class="pipeline-card-header">
-                    <span class="stage-index">STAGE 01</span>
-                    <span class="micro-badge"><span class="dot-pulse"></span> READY</span>
-                </div>
-                <div class="stage-title">1. SAM 3.1 Spatial Cortex</div>
-                <div class="stage-description">Sub-pixel layout segmentation, bounding box extraction &amp; visual anomaly localization</div>
-                <div class="stage-meta">
-                    <span class="model-pill">sam-3.1</span>
-                    <span class="meta-label">Vision Cortex</span>
-                </div>
-            </div>
-            
-            <div class="pipeline-card">
-                <div class="pipeline-card-header">
-                    <span class="stage-index">STAGE 02</span>
-                    <span class="micro-badge"><span class="dot-pulse"></span> READY</span>
-                </div>
-                <div class="stage-title">2. Muse Spark 1.3 Causal Fixer</div>
-                <div class="stage-description">Pixel-to-code multimodal correlation, offending token mapping &amp; deterministic patch synthesis</div>
-                <div class="stage-meta">
-                    <span class="model-pill">muse-spark-1.3</span>
-                    <span class="meta-label">Causal Fixer</span>
-                </div>
-            </div>
-            
-            <div class="pipeline-card">
-                <div class="pipeline-card-header">
-                    <span class="stage-index">STAGE 03</span>
-                    <span class="micro-badge"><span class="dot-pulse"></span> READY</span>
-                </div>
-                <div class="stage-title">3. Adversarial Chaos Engine</div>
-                <div class="stage-description">Adversarial stress suite across 5 vectors: buffer overflow, RTL Unicode, type mutation &amp; storm</div>
-                <div class="stage-meta">
-                    <span class="model-pill">chaos-engine</span>
-                    <span class="meta-label">Resilience 0-100</span>
-                </div>
-            </div>
-            
-            <div class="pipeline-card">
-                <div class="pipeline-card-header">
-                    <span class="stage-index">STAGE 04</span>
-                    <span class="micro-badge"><span class="dot-pulse"></span> READY</span>
-                </div>
-                <div class="stage-title">4. OASIS SARIF v2.1.0 Gate</div>
-                <div class="stage-description">AST-verified Playwright test generation &amp; OASIS SARIF v2.1.0 delivery for GitHub Actions</div>
-                <div class="stage-meta">
-                    <span class="model-pill">sarif-v2.1.0</span>
-                    <span class="meta-label">Policy Gate</span>
-                </div>
-            </div>
-        </div>
-        """,
+        '<div class="pipeline-container">'
+        '<div class="pipeline-card">'
+        '<div class="pipeline-card-header">'
+        '<span class="stage-index">STAGE 01</span>'
+        '<span class="micro-badge"><span class="dot-pulse"></span> READY</span>'
+        '</div>'
+        '<div class="stage-title">1. SAM 3.1 Spatial Cortex</div>'
+        '<div class="stage-description">Sub-pixel layout segmentation, bounding box extraction &amp; visual anomaly localization</div>'
+        '<div class="stage-meta">'
+        '<span class="model-pill">sam-3.1</span>'
+        '<span class="meta-label">Vision Cortex</span>'
+        '</div>'
+        '</div>'
+        '<div class="pipeline-card">'
+        '<div class="pipeline-card-header">'
+        '<span class="stage-index">STAGE 02</span>'
+        '<span class="micro-badge"><span class="dot-pulse"></span> READY</span>'
+        '</div>'
+        '<div class="stage-title">2. Muse Spark 1.3 Causal Fixer</div>'
+        '<div class="stage-description">Pixel-to-code multimodal correlation, offending token mapping &amp; deterministic patch synthesis</div>'
+        '<div class="stage-meta">'
+        '<span class="model-pill">muse-spark-1.3</span>'
+        '<span class="meta-label">Causal Fixer</span>'
+        '</div>'
+        '</div>'
+        '<div class="pipeline-card">'
+        '<div class="pipeline-card-header">'
+        '<span class="stage-index">STAGE 03</span>'
+        '<span class="micro-badge"><span class="dot-pulse"></span> READY</span>'
+        '</div>'
+        '<div class="stage-title">3. Adversarial Chaos Engine</div>'
+        '<div class="stage-description">Adversarial stress suite across 5 vectors: buffer overflow, RTL Unicode, type mutation &amp; storm</div>'
+        '<div class="stage-meta">'
+        '<span class="model-pill">chaos-engine</span>'
+        '<span class="meta-label">Resilience 0-100</span>'
+        '</div>'
+        '</div>'
+        '<div class="pipeline-card">'
+        '<div class="pipeline-card-header">'
+        '<span class="stage-index">STAGE 04</span>'
+        '<span class="micro-badge"><span class="dot-pulse"></span> READY</span>'
+        '</div>'
+        '<div class="stage-title">4. OASIS SARIF v2.1.0 Gate</div>'
+        '<div class="stage-description">AST-verified Playwright test generation &amp; OASIS SARIF v2.1.0 delivery for GitHub Actions</div>'
+        '<div class="stage-meta">'
+        '<span class="model-pill">sarif-v2.1.0</span>'
+        '<span class="meta-label">Policy Gate</span>'
+        '</div>'
+        '</div>'
+        '</div>',
         unsafe_allow_html=True,
     )
 
@@ -622,17 +615,15 @@ with col_left:
 
     st.markdown("#### Spatial Anomaly Details")
     for idx, defect in enumerate(report.defects, 1):
-        st.markdown(
-            f"""
-            <div class="swarm-card">
-                <b>Defect #{idx}: {defect.element_name}</b><br>
-                <span>Type: <code>{defect.defect_type}</code></span> | 
-                <span>Severity: <span class="badge badge-critical">{defect.severity}</span></span><br>
-                <span>Normalized Bounding Box <code>[ymin, xmin, ymax, xmax]</code>: <b>{defect.bbox}</b></span>
-            </div>
-            """,
-            unsafe_allow_html=True,
+        defect_card_html = (
+            '<div class="swarm-card">'
+            f'<b>Defect #{idx}: {defect.element_name}</b><br>'
+            f'<span>Type: <code>{defect.defect_type}</code></span> | '
+            f'<span>Severity: <span class="badge badge-critical">{defect.severity}</span></span><br>'
+            f'<span>Normalized Bounding Box <code>[ymin, xmin, ymax, xmax]</code>: <b>{defect.bbox}</b></span>'
+            '</div>'
         )
+        st.markdown(defect_card_html, unsafe_allow_html=True)
 
 # --- RIGHT COLUMN: Root-Cause Linking & Auto-Fixer - Muse Code ---
 with col_right:
@@ -642,19 +633,17 @@ with col_right:
         primary_rc = report.root_causes[0]
         primary_patch = report.patches[0]
 
-        st.markdown(
-            f"""
-            <div class="swarm-card">
-                <h4>🔗 Causal Link Established</h4>
-                <p><b>Target File:</b> <code>{primary_rc.target_file}</code></p>
-                <p><b>Exact Line:</b> Línea <b>{primary_rc.target_line}</b></p>
-                <p><b>Offending Token:</b> <code style="color: #EF4444; font-weight: bold;">{primary_rc.offending_token}</code></p>
-                <p><b>Explanation:</b> {primary_rc.explanation}</p>
-                <span class="badge badge-success">Deterministic Patch (Pydantic-Validated)</span>
-            </div>
-            """,
-            unsafe_allow_html=True,
+        causal_link_html = (
+            '<div class="swarm-card">'
+            '<h4>🔗 Causal Link Established</h4>'
+            f'<p><b>Target File:</b> <code>{primary_rc.target_file}</code></p>'
+            f'<p><b>Exact Line:</b> Línea <b>{primary_rc.target_line}</b></p>'
+            f'<p><b>Offending Token:</b> <code style="color: #EF4444; font-weight: bold;">{primary_rc.offending_token}</code></p>'
+            f'<p><b>Explanation:</b> {primary_rc.explanation}</p>'
+            '<span class="badge badge-success">Deterministic Patch (Pydantic-Validated)</span>'
+            '</div>'
         )
+        st.markdown(causal_link_html, unsafe_allow_html=True)
 
         st.markdown("#### Unified Code Diff (`width: 120px` ➔ `width: 100%`)")
         diff_text = generate_diff_view(
